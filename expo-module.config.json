@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["ReactNativeVideoCallModule"]
+  },
+  "android": {
+    "modules": ["com.divtechnosoft.videocall.ReactNativeVideoCallModule"]
+  }
+}
