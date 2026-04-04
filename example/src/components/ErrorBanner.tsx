@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface ErrorBannerProps {
   message: string;
@@ -13,9 +14,10 @@ interface ErrorBannerProps {
 export function ErrorBanner({ message, onDismiss }: ErrorBannerProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.message}>{message}</Text>
-      <TouchableOpacity onPress={onDismiss}>
-        <Text style={styles.dismiss}>Dismiss</Text>
+      <MaterialCommunityIcons name="alert-circle" size={20} color="#fff" />
+      <Text style={styles.message} numberOfLines={2}>{message}</Text>
+      <TouchableOpacity onPress={onDismiss} style={styles.dismissButton}>
+        <MaterialCommunityIcons name="close" size={20} color="#fff" />
       </TouchableOpacity>
     </View>
   );
@@ -27,23 +29,20 @@ const styles = StyleSheet.create({
     bottom: 120,
     left: 16,
     right: 16,
-    backgroundColor: '#FF3B30',
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    backgroundColor: '#EF4444',
+    borderRadius: 12,
+    paddingHorizontal: 14,
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 10,
   },
   message: {
     color: '#fff',
     fontSize: 14,
     flex: 1,
   },
-  dismiss: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 12,
+  dismissButton: {
+    padding: 4,
   },
 });

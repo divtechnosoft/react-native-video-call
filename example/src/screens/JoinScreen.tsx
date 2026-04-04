@@ -11,7 +11,9 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSettings } from '../context';
 
 interface JoinScreenProps {
@@ -24,20 +26,33 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
   const [roomId, setRoomId] = useState('');
   const [userId, setUserId] = useState('');
 
-  // Generate random user ID if not set
-  const getUserId = () => {
-    if (userId.trim()) return userId.trim();
-    return `user_${Math.random().toString(36).substring(2, 8)}`;
-  };
+  // Generate random user ID
+  const generateUserId = () => `user_${Math.random().toString(36).substring(2, 8)}`;
 
-  // Generate random room ID if not set
-  const getRoomId = () => {
-    if (roomId.trim()) return roomId.trim();
-    return `room_${Math.random().toString(36).substring(2, 8)}`;
-  };
+  // Generate random room ID
+  const generateRoomId = () => `room_${Math.random().toString(36).substring(2, 8)}`;
 
   const handleJoin = () => {
-    onJoinCall(getRoomId(), getUserId());
+    const finalRoomId = roomId.trim() || generateRoomId();
+    const finalUserId = userId.trim() || generateUserId();
+
+    // Validate room ID
+    if (finalRoomId.length < 3) {
+      Alert.alert('Invalid Room ID', 'Room ID must be at least 3 characters');
+      return;
+    }
+
+    // Validate user ID
+    if (finalUserId.length < 3) {
+      Alert.alert('Invalid Name', 'Name must be at least 3 characters');
+      return;
+    }
+
+    onJoinCall(finalRoomId, finalUserId);
+  };
+
+  const handleRandomRoom = () => {
+    setRoomId(generateRoomId());
   };
 
   return (
@@ -48,51 +63,65 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
       <View style={styles.content}>
         {/* Settings button */}
         <TouchableOpacity style={styles.settingsButton} onPress={onOpenSettings}>
-          <Text style={styles.settingsIcon}>⚙️</Text>
+          <MaterialCommunityIcons name="cog" size={28} color="#888" />
         </TouchableOpacity>
 
-        <Text style={styles.title}>Video Call</Text>
-        <Text style={styles.subtitle}>Enter room details to start a call</Text>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Room ID (optional)</Text>
-          <TextInput
-            style={styles.input}
-            value={roomId}
-            onChangeText={setRoomId}
-            placeholder="Leave empty for random room"
-            placeholderTextColor="#666"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+        {/* Logo/Icon */}
+        <View style={styles.logoContainer}>
+          <MaterialCommunityIcons name="video" size={64} color="#4F46E5" />
         </View>
 
+        <Text style={styles.title}>Video Call</Text>
+        <Text style={styles.subtitle}>Enter room details or use random values</Text>
+
+        {/* Room ID Input */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Your Name (optional)</Text>
+          <Text style={styles.label}>Room ID</Text>
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.input}
+              value={roomId}
+              onChangeText={setRoomId}
+              placeholder="Enter room ID"
+              placeholderTextColor="#666"
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={30}
+            />
+            <TouchableOpacity style={styles.randomButton} onPress={handleRandomRoom}>
+              <MaterialCommunityIcons name="dice-5" size={24} color="#4F46E5" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* User ID Input */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Your Name</Text>
           <TextInput
             style={styles.input}
             value={userId}
             onChangeText={setUserId}
-            placeholder="Leave empty for random name"
+            placeholder="Enter your name"
             placeholderTextColor="#666"
             autoCapitalize="none"
             autoCorrect={false}
+            maxLength={20}
           />
         </View>
 
-        <TouchableOpacity style={styles.joinButton} onPress={handleJoin}>
+        {/* Join Button */}
+        <TouchableOpacity style={styles.joinButton} onPress={handleJoin} activeOpacity={0.8}>
+          <MaterialCommunityIcons name="video-outline" size={24} color="#fff" />
           <Text style={styles.joinButtonText}>Join Call</Text>
         </TouchableOpacity>
 
-        <Text style={styles.hint}>
-          Share the Room ID with another person to start a video call
-        </Text>
-
         {/* Server info */}
-        <View style={styles.serverInfo}>
+        <TouchableOpacity style={styles.serverInfo} onPress={onOpenSettings}>
+          <MaterialCommunityIcons name="server" size={16} color="#555" />
           <Text style={styles.serverLabel}>Server:</Text>
-          <Text style={styles.serverUrl}>{settings.signalingUrl}</Text>
-        </View>
+          <Text style={styles.serverUrl} numberOfLines={1}>{settings.signalingUrl}</Text>
+          <MaterialCommunityIcons name="chevron-right" size={16} color="#555" />
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
@@ -114,8 +143,9 @@ const styles = StyleSheet.create({
     right: 20,
     padding: 8,
   },
-  settingsIcon: {
-    fontSize: 24,
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
   title: {
     fontSize: 36,
@@ -125,20 +155,25 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#888',
+    fontSize: 15,
+    color: '#666',
     textAlign: 'center',
-    marginBottom: 48,
+    marginBottom: 40,
   },
   inputGroup: {
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    color: '#aaa',
+    color: '#888',
     marginBottom: 8,
   },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   input: {
+    flex: 1,
     backgroundColor: '#1a1a2e',
     borderRadius: 12,
     paddingHorizontal: 16,
@@ -148,37 +183,49 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#333',
   },
+  randomButton: {
+    marginLeft: 12,
+    padding: 12,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
   joinButton: {
     backgroundColor: '#4F46E5',
     borderRadius: 12,
-    paddingVertical: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 24,
   },
   joinButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
-  },
-  hint: {
-    fontSize: 13,
-    color: '#555',
-    textAlign: 'center',
-    marginTop: 32,
-    lineHeight: 20,
+    marginLeft: 8,
   },
   serverInfo: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: 32,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 8,
   },
   serverLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#555',
+    marginLeft: 6,
   },
   serverUrl: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#4F46E5',
     marginLeft: 4,
+    flex: 1,
   },
 });
