@@ -10,7 +10,7 @@ export * from './webrtc';
 
 // ICE Server configuration
 export interface ICEServer {
-  urls: string;
+  urls: string | string[];
   username?: string;
   credential?: string;
 }
