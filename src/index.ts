@@ -1,5 +1,19 @@
-// Reexport the native module. On web, it will be resolved to ReactNativeVideoCallModule.web.ts
-// and on native platforms to ReactNativeVideoCallModule.ts
-export { default } from './ReactNativeVideoCallModule';
-export { default as ReactNativeVideoCallView } from './ReactNativeVideoCallView';
-export * from  './ReactNativeVideoCall.types';
+/**
+ * react-native-video-call
+ * A plug-and-play WebRTC video calling library for React Native
+ */
+
+// Export types
+export * from './types';
+
+// Export hooks
+export * from './hooks';
+
+// Export services
+export * from './services';
+
+// Export components
+export * from './components';
+
+// Export utilities
+export * from './utils';
