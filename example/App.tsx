@@ -1,73 +1,47 @@
-import { useEvent } from 'expo';
-import ReactNativeVideoCall, { ReactNativeVideoCallView } from 'react-native-video-call';
-import { Button, SafeAreaView, ScrollView, Text, View } from 'react-native';
+/**
+ * Example App for react-native-video-call
+ */
+
+import React, { useState } from 'react';
+import { StatusBar } from 'react-native';
+import { JoinScreen, CallScreen } from './src/screens';
+
+type Screen = 'join' | 'call';
+
+interface CallInfo {
+  roomId: string;
+  userId: string;
+}
 
 export default function App() {
-  const onChangePayload = useEvent(ReactNativeVideoCall, 'onChange');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('join');
+  const [callInfo, setCallInfo] = useState<CallInfo | null>(null);
+
+  const handleJoinCall = (roomId: string, userId: string) => {
+    setCallInfo({ roomId, userId });
+    setCurrentScreen('call');
+  };
+
+  const handleEndCall = () => {
+    setCurrentScreen('join');
+    setCallInfo(null);
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.container}>
-        <Text style={styles.header}>Module API Example</Text>
-        <Group name="Constants">
-          <Text>{ReactNativeVideoCall.PI}</Text>
-        </Group>
-        <Group name="Functions">
-          <Text>{ReactNativeVideoCall.hello()}</Text>
-        </Group>
-        <Group name="Async functions">
-          <Button
-            title="Set value"
-            onPress={async () => {
-              await ReactNativeVideoCall.setValueAsync('Hello from JS!');
-            }}
-          />
-        </Group>
-        <Group name="Events">
-          <Text>{onChangePayload?.value}</Text>
-        </Group>
-        <Group name="Views">
-          <ReactNativeVideoCallView
-            url="https://www.example.com"
-            onLoad={({ nativeEvent: { url } }) => console.log(`Loaded: ${url}`)}
-            style={styles.view}
-          />
-        </Group>
-      </ScrollView>
-    </SafeAreaView>
+    <>
+      <StatusBar barStyle="light-content" />
+
+      {currentScreen === 'join' && (
+        <JoinScreen onJoinCall={handleJoinCall} />
+      )}
+
+      {currentScreen === 'call' && callInfo && (
+        <CallScreen
+          roomId={callInfo.roomId}
+          userId={callInfo.userId}
+          onEndCall={handleEndCall}
+        />
+      )}
+    </>
   );
 }
-
-function Group(props: { name: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.group}>
-      <Text style={styles.groupHeader}>{props.name}</Text>
-      {props.children}
-    </View>
-  );
-}
-
-const styles = {
-  header: {
-    fontSize: 30,
-    margin: 20,
-  },
-  groupHeader: {
-    fontSize: 20,
-    marginBottom: 20,
-  },
-  group: {
-    margin: 20,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#eee',
-  },
-  view: {
-    flex: 1,
-    height: 200,
-  },
-};

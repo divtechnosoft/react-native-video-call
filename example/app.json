@@ -1,29 +1,39 @@
 {
   "expo": {
-    "name": "react-native-video-call-example",
+    "name": "Video Call Example",
     "slug": "react-native-video-call-example",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.divtechnosoft.videocall.example"
+      "bundleIdentifier": "com.divtechnosoft.videocall.example",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs camera access for video calls",
+        "NSMicrophoneUsageDescription": "This app needs microphone access for video calls"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.divtechnosoft.videocall.example"
+      "package": "com.divtechnosoft.videocall.example",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.INTERNET"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
