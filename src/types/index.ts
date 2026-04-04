@@ -5,8 +5,11 @@
 import { MediaStream } from 'react-native-webrtc';
 import { RTCIceCandidateInit, RTCSessionDescriptionInit } from './webrtc';
 
-// Re-export from webrtc
-export * from './webrtc';
+// Re-export types from react-native-webrtc directly
+export { MediaStream, MediaStreamTrack, RTCPeerConnection, RTCIceCandidate, RTCSessionDescription, mediaDevices } from 'react-native-webrtc';
+
+// Export our custom types
+export { RTCIceCandidateInit, RTCSessionDescriptionInit, RTCPeerConnectionState, RTCIceConnectionState, iceCandidateToInit } from './webrtc';
 
 // ICE Server configuration
 export interface ICEServer {

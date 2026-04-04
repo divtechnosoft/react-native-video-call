@@ -3,8 +3,7 @@
  * Types not exported by react-native-webrtc are defined here
  */
 
-// Re-export types from react-native-webrtc
-export { MediaStream, MediaStreamTrack, RTCPeerConnection, RTCIceCandidate, RTCSessionDescription, mediaDevices } from 'react-native-webrtc';
+import { RTCIceCandidate } from 'react-native-webrtc';
 
 // ICE Candidate init type
 export interface RTCIceCandidateInit {
