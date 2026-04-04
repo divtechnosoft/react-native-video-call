@@ -3,3 +3,4 @@
  */
 
 export * from './peerConnection';
+export * from './signalingClient';
