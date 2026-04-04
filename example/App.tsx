@@ -4,9 +4,10 @@
 
 import React, { useState } from 'react';
 import { StatusBar } from 'react-native';
-import { JoinScreen, CallScreen } from './src/screens';
+import { SettingsProvider } from './src/context';
+import { JoinScreen, CallScreen, SettingsScreen } from './src/screens';
 
-type Screen = 'join' | 'call';
+type Screen = 'join' | 'call' | 'settings';
 
 interface CallInfo {
   roomId: string;
@@ -27,12 +28,20 @@ export default function App() {
     setCallInfo(null);
   };
 
+  const handleOpenSettings = () => {
+    setCurrentScreen('settings');
+  };
+
+  const handleCloseSettings = () => {
+    setCurrentScreen('join');
+  };
+
   return (
-    <>
+    <SettingsProvider>
       <StatusBar barStyle="light-content" />
 
       {currentScreen === 'join' && (
-        <JoinScreen onJoinCall={handleJoinCall} />
+        <JoinScreen onJoinCall={handleJoinCall} onOpenSettings={handleOpenSettings} />
       )}
 
       {currentScreen === 'call' && callInfo && (
@@ -42,6 +51,10 @@ export default function App() {
           onEndCall={handleEndCall}
         />
       )}
-    </>
+
+      {currentScreen === 'settings' && (
+        <SettingsScreen onClose={handleCloseSettings} />
+      )}
+    </SettingsProvider>
   );
 }

@@ -3,13 +3,11 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
 import { VideoCall, CallState } from 'react-native-video-call';
 import { CallStatusOverlay } from '../components/CallStatusOverlay';
 import { ErrorBanner } from '../components/ErrorBanner';
-
-// Change this to your signaling server URL
-const SIGNALING_URL = 'http://localhost:8080';
+import { useSettings } from '../context';
 
 interface CallScreenProps {
   roomId: string;
@@ -18,6 +16,7 @@ interface CallScreenProps {
 }
 
 export function CallScreen({ roomId, userId, onEndCall }: CallScreenProps) {
+  const { settings } = useSettings();
   const [callState, setCallState] = useState<CallState>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +35,7 @@ export function CallScreen({ roomId, userId, onEndCall }: CallScreenProps) {
       <VideoCall
         roomId={roomId}
         userId={userId}
-        signalingUrl={SIGNALING_URL}
+        signalingUrl={settings.signalingUrl}
         onCallStateChange={handleCallStateChange}
         onError={handleError}
         style={styles.videoCall}

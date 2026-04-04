@@ -12,12 +12,15 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useSettings } from '../context';
 
 interface JoinScreenProps {
   onJoinCall: (roomId: string, userId: string) => void;
+  onOpenSettings: () => void;
 }
 
-export function JoinScreen({ onJoinCall }: JoinScreenProps) {
+export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
+  const { settings } = useSettings();
   const [roomId, setRoomId] = useState('');
   const [userId, setUserId] = useState('');
 
@@ -43,6 +46,11 @@ export function JoinScreen({ onJoinCall }: JoinScreenProps) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
+        {/* Settings button */}
+        <TouchableOpacity style={styles.settingsButton} onPress={onOpenSettings}>
+          <Text style={styles.settingsIcon}>⚙️</Text>
+        </TouchableOpacity>
+
         <Text style={styles.title}>Video Call</Text>
         <Text style={styles.subtitle}>Enter room details to start a call</Text>
 
@@ -79,6 +87,12 @@ export function JoinScreen({ onJoinCall }: JoinScreenProps) {
         <Text style={styles.hint}>
           Share the Room ID with another person to start a video call
         </Text>
+
+        {/* Server info */}
+        <View style={styles.serverInfo}>
+          <Text style={styles.serverLabel}>Server:</Text>
+          <Text style={styles.serverUrl}>{settings.signalingUrl}</Text>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -93,6 +107,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 32,
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    padding: 8,
+  },
+  settingsIcon: {
+    fontSize: 24,
   },
   title: {
     fontSize: 36,
@@ -143,5 +166,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 32,
     lineHeight: 20,
+  },
+  serverInfo: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  serverLabel: {
+    fontSize: 12,
+    color: '#555',
+  },
+  serverUrl: {
+    fontSize: 12,
+    color: '#4F46E5',
+    marginLeft: 4,
   },
 });
