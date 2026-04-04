@@ -29,21 +29,21 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   // Load settings on mount
   useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(SETTINGS_KEY);
+        if (stored) {
+          setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) });
+        }
+      } catch (error) {
+        console.error('[Settings] Failed to load settings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     loadSettings();
   }, []);
-
-  const loadSettings = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(SETTINGS_KEY);
-      if (stored) {
-        setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) });
-      }
-    } catch (error) {
-      console.error('[Settings] Failed to load settings:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const updateSettings = useCallback(async (newSettings: Partial<AppSettings>) => {
     try {

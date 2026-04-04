@@ -2,13 +2,21 @@
  * CallStatusOverlay - Displays current call state
  */
 
-import React from 'react';
-import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CallState } from 'react-native-video-call';
+import { styles } from './style';
 
 interface CallStatusOverlayProps {
   callState: CallState;
+}
+
+interface StateInfo {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  text: string;
+  showSpinner: boolean;
+  color: string;
 }
 
 export function CallStatusOverlay({ callState }: CallStatusOverlayProps) {
@@ -17,7 +25,8 @@ export function CallStatusOverlay({ callState }: CallStatusOverlayProps) {
     return null;
   }
 
-  const getStateInfo = () => {
+  // Memoize state info to prevent recalculation
+  const stateInfo: StateInfo = useMemo(() => {
     switch (callState) {
       case 'requesting-permissions':
         return {
@@ -69,38 +78,16 @@ export function CallStatusOverlay({ callState }: CallStatusOverlayProps) {
           color: '#888',
         };
     }
-  };
-
-  const { icon, text, showSpinner, color } = getStateInfo();
+  }, [callState]);
 
   return (
     <View style={styles.container}>
-      {showSpinner ? (
-        <ActivityIndicator size="small" color={color} />
+      {stateInfo.showSpinner ? (
+        <ActivityIndicator size="small" color={stateInfo.color} />
       ) : (
-        <MaterialCommunityIcons name={icon as any} size={20} color={color} />
+        <MaterialCommunityIcons name={stateInfo.icon} size={20} color={stateInfo.color} />
       )}
-      <Text style={[styles.text, { color }]}>{text}</Text>
+      <Text style={[styles.text, { color: stateInfo.color }]}>{stateInfo.text}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 100,
-    left: 16,
-    right: 16,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    borderRadius: 12,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  text: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-});

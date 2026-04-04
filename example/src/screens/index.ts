@@ -2,6 +2,6 @@
  * Screens exports
  */
 
-export * from './JoinScreen';
-export * from './CallScreen';
-export * from './SettingsScreen';
+export { JoinScreen } from './JoinScreen';
+export { CallScreen } from './CallScreen';
+export { SettingsScreen } from './SettingsScreen';

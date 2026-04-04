@@ -44,13 +44,13 @@ export default function App() {
         <JoinScreen onJoinCall={handleJoinCall} onOpenSettings={handleOpenSettings} />
       )}
 
-      {currentScreen === 'call' && callInfo && (
+      {currentScreen === 'call' && callInfo ? (
         <CallScreen
           roomId={callInfo.roomId}
           userId={callInfo.userId}
           onEndCall={handleEndCall}
         />
-      )}
+      ) : null}
 
       {currentScreen === 'settings' && (
         <SettingsScreen onClose={handleCloseSettings} />

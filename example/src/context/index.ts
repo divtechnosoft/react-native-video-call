@@ -2,4 +2,5 @@
  * Context exports
  */
 
-export * from './SettingsContext';
+export { SettingsProvider, useSettings } from './SettingsContext';
+export type { AppSettings } from './SettingsContext';
