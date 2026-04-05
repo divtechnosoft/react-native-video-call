@@ -3,8 +3,10 @@
  */
 
 import React, { memo } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ThemeText } from '../ThemeText';
+import { COLORS } from '../../config';
 import { styles } from './style';
 
 interface ErrorBannerProps {
@@ -20,15 +22,15 @@ export const ErrorBanner = memo(function ErrorBanner({ message, onDismiss }: Err
 
   return (
     <View style={styles.container}>
-      <MaterialCommunityIcons name="alert-circle" size={20} color="#fff" />
-      <Text style={styles.message} numberOfLines={2}>
+      <MaterialCommunityIcons name="alert-circle" size={20} color={COLORS.text} />
+      <ThemeText variant="small" style={styles.message} numberOfLines={2}>
         {message}
-      </Text>
+      </ThemeText>
       <Pressable
         style={({ pressed }) => [styles.dismissButton, pressed && styles.dismissButtonPressed]}
         onPress={onDismiss}
       >
-        <MaterialCommunityIcons name="close" size={20} color="#fff" />
+        <MaterialCommunityIcons name="close" size={20} color={COLORS.text} />
       </Pressable>
     </View>
   );

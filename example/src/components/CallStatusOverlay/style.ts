@@ -3,6 +3,7 @@
  */
 
 import { StyleSheet } from 'react-native';
+import { COLORS } from '../../config';
 
 export const styles = StyleSheet.create({
   container: {
@@ -10,7 +11,7 @@ export const styles = StyleSheet.create({
     top: 100,
     left: 16,
     right: 16,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: COLORS.overlayLight,
     borderRadius: 12,
     padding: 14,
     flexDirection: 'row',
@@ -19,7 +20,6 @@ export const styles = StyleSheet.create({
     gap: 10,
   },
   text: {
-    fontSize: 14,
-    fontWeight: '500',
+    textAlign: 'center',
   },
 });

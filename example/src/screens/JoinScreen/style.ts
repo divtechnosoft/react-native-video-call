@@ -3,11 +3,12 @@
  */
 
 import { StyleSheet } from 'react-native';
+import { COLORS } from '../../config';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: COLORS.background,
   },
   content: {
     flex: 1,
@@ -28,15 +29,10 @@ export const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#fff',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 15,
-    color: '#666',
     textAlign: 'center',
     marginBottom: 40,
   },
@@ -44,35 +40,22 @@ export const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontSize: 14,
-    color: '#888',
     marginBottom: 8,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  input: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#fff',
-    borderWidth: 1,
-    borderColor: '#333',
-  },
   randomButton: {
     marginLeft: 12,
     padding: 12,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: COLORS.border,
   },
   joinButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
@@ -82,12 +65,9 @@ export const styles = StyleSheet.create({
     marginTop: 24,
   },
   joinButtonPressed: {
-    backgroundColor: '#4338CA',
+    backgroundColor: COLORS.primaryDark,
   },
   joinButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
     marginLeft: 8,
   },
   serverInfo: {
@@ -97,21 +77,18 @@ export const styles = StyleSheet.create({
     marginTop: 32,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: COLORS.surface,
     borderRadius: 8,
   },
   serverInfoPressed: {
-    backgroundColor: '#252542',
+    backgroundColor: COLORS.surfaceLight,
   },
   serverLabel: {
-    fontSize: 13,
-    color: '#555',
     marginLeft: 6,
   },
   serverUrl: {
-    fontSize: 13,
-    color: '#4F46E5',
     marginLeft: 4,
     flex: 1,
+    color: COLORS.primary,
   },
 });

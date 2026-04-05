@@ -3,9 +3,11 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CallState } from 'react-native-video-call';
+import { ThemeText } from '../ThemeText';
+import { COLORS } from '../../config';
 import { styles } from './style';
 
 interface CallStatusOverlayProps {
@@ -33,49 +35,49 @@ export function CallStatusOverlay({ callState }: CallStatusOverlayProps) {
           icon: 'key',
           text: 'Requesting permissions...',
           showSpinner: true,
-          color: '#4F46E5',
+          color: COLORS.primary,
         };
       case 'connecting':
         return {
           icon: 'link-variant',
           text: 'Connecting...',
           showSpinner: true,
-          color: '#4F46E5',
+          color: COLORS.primary,
         };
       case 'reconnecting':
         return {
           icon: 'refresh',
           text: 'Reconnecting...',
           showSpinner: true,
-          color: '#F59E0B',
+          color: COLORS.warning,
         };
       case 'failed':
         return {
           icon: 'alert-circle',
           text: 'Connection failed',
           showSpinner: false,
-          color: '#EF4444',
+          color: COLORS.error,
         };
       case 'ended':
         return {
           icon: 'phone-hangup',
           text: 'Call ended',
           showSpinner: false,
-          color: '#6B7280',
+          color: COLORS.textMuted,
         };
       case 'remote-ended':
         return {
           icon: 'phone-missed',
           text: 'Remote user left',
           showSpinner: false,
-          color: '#6B7280',
+          color: COLORS.textMuted,
         };
       default:
         return {
           icon: 'information',
           text: callState,
           showSpinner: false,
-          color: '#888',
+          color: COLORS.textSecondary,
         };
     }
   }, [callState]);
@@ -87,7 +89,9 @@ export function CallStatusOverlay({ callState }: CallStatusOverlayProps) {
       ) : (
         <MaterialCommunityIcons name={stateInfo.icon} size={20} color={stateInfo.color} />
       )}
-      <Text style={[styles.text, { color: stateInfo.color }]}>{stateInfo.text}</Text>
+      <ThemeText variant="small" style={[styles.text, { color: stateInfo.color }]}>
+        {stateInfo.text}
+      </ThemeText>
     </View>
   );
 }

@@ -9,16 +9,31 @@ export const APP_CONFIG = {
 } as const;
 
 export const COLORS = {
-  primary: '#4F46E5',
-  primaryDark: '#4338CA',
-  background: '#0a0a0f',
-  surface: '#1a1a2e',
-  surfaceLight: '#252542',
+  // Background
+  background: '#000000',
+  black: '#000000',
+  surface: '#1a1a1a',
+  surfaceLight: '#2a2a2a',
+
+  // Primary (white)
+  primary: '#ffffff',
+  primaryDark: '#cccccc',
+
+  // Text
   text: '#ffffff',
-  textSecondary: '#888888',
-  textMuted: '#666666',
+  textSecondary: '#aaaaaa',
+  textMuted: '#777777',
+  textDark: '#555555',
+
+  // Border
   border: '#333333',
-  error: '#EF4444',
-  warning: '#F59E0B',
-  success: '#10B981',
+
+  // Overlay
+  overlayDark: 'rgba(0,0,0,0.6)',
+  overlayLight: 'rgba(0,0,0,0.85)',
+
+  // Status (grayscale)
+  error: '#666666',
+  warning: '#888888',
+  success: '#aaaaaa',
 } as const;

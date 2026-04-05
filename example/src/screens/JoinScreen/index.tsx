@@ -5,8 +5,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
-  Text,
-  TextInput,
   Pressable,
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +12,8 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSettings } from '../../context';
+import { ThemeText, ThemeTextInput } from '../../components';
+import { COLORS } from '../../config';
 import { styles } from './style';
 
 interface JoinScreenProps {
@@ -80,29 +80,35 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
             <MaterialCommunityIcons
               name="cog"
               size={28}
-              color={pressed ? '#4F46E5' : '#888'}
+              color={pressed ? COLORS.primary : COLORS.textSecondary}
             />
           )}
         </Pressable>
 
         {/* Logo */}
         <View style={styles.logoContainer}>
-          <MaterialCommunityIcons name="video" size={64} color="#4F46E5" />
+          <MaterialCommunityIcons name="video" size={64} color={COLORS.primary} />
         </View>
 
-        <Text style={styles.title}>Video Call</Text>
-        <Text style={styles.subtitle}>Enter room details or use random values</Text>
+        <ThemeText variant="large" style={styles.title}>
+          Video Call
+        </ThemeText>
+        <ThemeText variant="small" style={styles.subtitle}>
+          Enter room details or use random values
+        </ThemeText>
 
         {/* Room ID Input */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Room ID</Text>
+          <ThemeText variant="small" style={styles.label}>
+            Room ID
+          </ThemeText>
           <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
+            <ThemeTextInput
+              variant="medium"
+              style={{ flex: 1 }}
               value={roomId}
               onChangeText={handleChangeRoomId}
               placeholder="Enter room ID"
-              placeholderTextColor="#666"
               autoCapitalize="none"
               autoCorrect={false}
               maxLength={30}
@@ -115,7 +121,7 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
                 <MaterialCommunityIcons
                   name="dice-5"
                   size={24}
-                  color={pressed ? '#818CF8' : '#4F46E5'}
+                  color={pressed ? COLORS.textMuted : COLORS.primary}
                 />
               )}
             </Pressable>
@@ -124,13 +130,14 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
 
         {/* User ID Input */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Your Name</Text>
-          <TextInput
-            style={styles.input}
+          <ThemeText variant="small" style={styles.label}>
+            Your Name
+          </ThemeText>
+          <ThemeTextInput
+            variant="medium"
             value={userId}
             onChangeText={handleChangeUserId}
             placeholder="Enter your name"
-            placeholderTextColor="#666"
             autoCapitalize="none"
             autoCorrect={false}
             maxLength={20}
@@ -142,8 +149,10 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
           style={({ pressed }) => [styles.joinButton, pressed && styles.joinButtonPressed]}
           onPress={handleJoin}
         >
-          <MaterialCommunityIcons name="video-outline" size={24} color="#fff" />
-          <Text style={styles.joinButtonText}>Join Call</Text>
+          <MaterialCommunityIcons name="video-outline" size={24} color={COLORS.background} />
+          <ThemeText variant="medium" style={[styles.joinButtonText, { color: COLORS.background }]}>
+            Join Call
+          </ThemeText>
         </Pressable>
 
         {/* Server info */}
@@ -151,12 +160,14 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
           style={({ pressed }) => [styles.serverInfo, pressed && styles.serverInfoPressed]}
           onPress={onOpenSettings}
         >
-          <MaterialCommunityIcons name="server" size={16} color="#555" />
-          <Text style={styles.serverLabel}>Server:</Text>
-          <Text style={styles.serverUrl} numberOfLines={1}>
+          <MaterialCommunityIcons name="server" size={16} color={COLORS.textDark} />
+          <ThemeText variant="small" style={styles.serverLabel}>
+            Server:
+          </ThemeText>
+          <ThemeText variant="small" style={styles.serverUrl} numberOfLines={1}>
             {settings.signalingUrl}
-          </Text>
-          <MaterialCommunityIcons name="chevron-right" size={16} color="#555" />
+          </ThemeText>
+          <MaterialCommunityIcons name="chevron-right" size={16} color={COLORS.textDark} />
         </Pressable>
       </View>
     </KeyboardAvoidingView>

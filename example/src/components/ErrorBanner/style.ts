@@ -3,6 +3,7 @@
  */
 
 import { StyleSheet } from 'react-native';
+import { COLORS } from '../../config';
 
 export const styles = StyleSheet.create({
   container: {
@@ -10,7 +11,7 @@ export const styles = StyleSheet.create({
     bottom: 120,
     left: 16,
     right: 16,
-    backgroundColor: '#EF4444',
+    backgroundColor: COLORS.error,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -19,8 +20,6 @@ export const styles = StyleSheet.create({
     gap: 10,
   },
   message: {
-    color: '#fff',
-    fontSize: 14,
     flex: 1,
   },
   dismissButton: {

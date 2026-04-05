@@ -3,11 +3,12 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, Text, Alert } from 'react-native';
+import { View, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { VideoCall, CallState } from 'react-native-video-call';
-import { CallStatusOverlay, ErrorBanner } from '../../components';
+import { CallStatusOverlay, ErrorBanner, ThemeText } from '../../components';
 import { useSettings } from '../../context';
+import { COLORS } from '../../config';
 import { styles } from './style';
 
 interface CallScreenProps {
@@ -64,12 +65,12 @@ export function CallScreen({ roomId, userId, onEndCall }: CallScreenProps) {
       {/* Top bar with room info */}
       <View style={styles.topBar}>
         <View style={styles.roomInfo}>
-          <MaterialCommunityIcons name="video" size={14} color="#fff" />
-          <Text style={styles.roomLabel}>{roomId}</Text>
+          <MaterialCommunityIcons name="video" size={14} color={COLORS.text} />
+          <ThemeText variant="small" style={styles.roomLabel}>{roomId}</ThemeText>
         </View>
         <View style={styles.userInfo}>
-          <MaterialCommunityIcons name="account" size={14} color="#888" />
-          <Text style={styles.userLabel}>{userId}</Text>
+          <MaterialCommunityIcons name="account" size={14} color={COLORS.textSecondary} />
+          <ThemeText variant="small" style={styles.userLabel}>{userId}</ThemeText>
         </View>
       </View>
 

@@ -5,8 +5,6 @@
 import React, { useState, useCallback } from 'react';
 import {
   View,
-  Text,
-  TextInput,
   Pressable,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +13,8 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSettings } from '../../context';
+import { ThemeText, ThemeTextInput } from '../../components';
+import { COLORS } from '../../config';
 import { styles } from './style';
 
 interface SettingsScreenProps {
@@ -72,11 +72,13 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
             <MaterialCommunityIcons
               name="arrow-left"
               size={28}
-              color={pressed ? '#4F46E5' : '#fff'}
+              color={pressed ? COLORS.primary : COLORS.text}
             />
           )}
         </Pressable>
-        <Text style={styles.title}>Settings</Text>
+        <ThemeText variant="large" style={styles.title}>
+          Settings
+        </ThemeText>
         <View style={styles.spacer} />
       </View>
 
@@ -84,36 +86,42 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
         {/* Server Configuration */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="server" size={20} color="#4F46E5" />
-            <Text style={styles.sectionTitle}>Server Configuration</Text>
+            <MaterialCommunityIcons name="server" size={20} color={COLORS.primary} />
+            <ThemeText variant="medium" style={styles.sectionTitle}>
+              Server Configuration
+            </ThemeText>
           </View>
 
-          <Text style={styles.label}>Signaling Server URL</Text>
-          <TextInput
+          <ThemeText variant="small" style={styles.label}>
+            Signaling Server URL
+          </ThemeText>
+          <ThemeTextInput
+            variant="medium"
             style={styles.input}
             value={signalingUrl}
             onChangeText={handleChangeUrl}
             placeholder="http://192.168.1.100:8080"
-            placeholderTextColor="#666"
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
           />
 
           <View style={styles.hintBox}>
-            <MaterialCommunityIcons name="information-outline" size={18} color="#666" />
-            <Text style={styles.hint}>
+            <MaterialCommunityIcons name="information-outline" size={18} color={COLORS.textMuted} />
+            <ThemeText variant="small" style={styles.hint}>
               For local testing, use your machine&apos;s IP address instead of localhost.{'\n'}
               Example: http://192.168.1.100:8080
-            </Text>
+            </ThemeText>
           </View>
         </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="lightning-bolt" size={20} color="#4F46E5" />
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <MaterialCommunityIcons name="lightning-bolt" size={20} color={COLORS.primary} />
+            <ThemeText variant="medium" style={styles.sectionTitle}>
+              Quick Actions
+            </ThemeText>
           </View>
 
           <Pressable
@@ -125,12 +133,12 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
                 <MaterialCommunityIcons
                   name="refresh"
                   size={22}
-                  color={pressed ? '#4F46E5' : '#888'}
+                  color={pressed ? COLORS.primary : COLORS.textSecondary}
                 />
-                <Text style={[styles.actionButtonText, pressed && styles.actionButtonTextPressed]}>
+                <ThemeText variant="medium" style={[styles.actionButtonText, pressed && styles.actionButtonTextPressed]}>
                   Reset to Default
-                </Text>
-                <MaterialCommunityIcons name="chevron-right" size={22} color="#555" />
+                </ThemeText>
+                <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.textDark} />
               </>
             )}
           </Pressable>
@@ -139,15 +147,17 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
         {/* About */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="information" size={20} color="#4F46E5" />
-            <Text style={styles.sectionTitle}>About</Text>
+            <MaterialCommunityIcons name="information" size={20} color={COLORS.primary} />
+            <ThemeText variant="medium" style={styles.sectionTitle}>
+              About
+            </ThemeText>
           </View>
 
-          <Text style={styles.aboutText}>
+          <ThemeText variant="small" style={styles.aboutText}>
             React Native Video Call{'\n'}
             Version 1.0.0{'\n'}{'\n'}
             A plug-and-play WebRTC video calling library for React Native.
-          </Text>
+          </ThemeText>
         </View>
       </ScrollView>
 
@@ -157,8 +167,10 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
           style={({ pressed }) => [styles.saveButton, pressed && styles.saveButtonPressed]}
           onPress={handleSave}
         >
-          <MaterialCommunityIcons name="content-save" size={22} color="#fff" />
-          <Text style={styles.saveButtonText}>Save Settings</Text>
+          <MaterialCommunityIcons name="content-save" size={22} color={COLORS.background} />
+          <ThemeText variant="medium" style={[styles.saveButtonText, { color: COLORS.background }]}>
+            Save Settings
+          </ThemeText>
         </Pressable>
       </View>
     </KeyboardAvoidingView>

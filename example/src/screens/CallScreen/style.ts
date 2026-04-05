@@ -3,11 +3,12 @@
  */
 
 import { StyleSheet } from 'react-native';
+import { COLORS } from '../../config';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: COLORS.black,
   },
   videoCall: {
     flex: 1,
@@ -23,27 +24,25 @@ export const styles = StyleSheet.create({
   roomInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: COLORS.overlayDark,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 6,
   },
   roomLabel: {
-    color: '#fff',
-    fontSize: 12,
+    color: COLORS.text,
   },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: COLORS.overlayDark,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 6,
   },
   userLabel: {
-    color: '#888',
-    fontSize: 12,
+    color: COLORS.textSecondary,
   },
 });
