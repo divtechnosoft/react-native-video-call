@@ -67,6 +67,10 @@ export const styles = StyleSheet.create({
   joinButtonPressed: {
     backgroundColor: COLORS.primaryDark,
   },
+  joinButtonDisabled: {
+    backgroundColor: COLORS.textDark,
+    opacity: 0.5,
+  },
   joinButtonText: {
     marginLeft: 8,
   },

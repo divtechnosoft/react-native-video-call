@@ -2,7 +2,7 @@
  * JoinScreen - Screen to enter room and start a call
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Pressable,
@@ -26,32 +26,34 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
   const [roomId, setRoomId] = useState('');
   const [userId, setUserId] = useState('');
 
-  // Memoized generated IDs
-  const generatedRoomId = useMemo(
-    () => `room_${Math.random().toString(36).substring(2, 8)}`,
-    []
-  );
-  const generatedUserId = useMemo(
-    () => `user_${Math.random().toString(36).substring(2, 8)}`,
-    []
-  );
-
   const handleJoin = useCallback(() => {
-    const finalRoomId = roomId.trim() || generatedRoomId;
-    const finalUserId = userId.trim() || generatedUserId;
+    const trimmedRoomId = roomId.trim();
+    const trimmedUserId = userId.trim();
 
-    if (finalRoomId.length < 3) {
+    // Validate room ID
+    if (!trimmedRoomId) {
+      Alert.alert('Required', 'Please enter a Room ID');
+      return;
+    }
+
+    if (trimmedRoomId.length < 3) {
       Alert.alert('Invalid Room ID', 'Room ID must be at least 3 characters');
       return;
     }
 
-    if (finalUserId.length < 3) {
-      Alert.alert('Invalid Name', 'Name must be at least 3 characters');
+    // Validate name
+    if (!trimmedUserId) {
+      Alert.alert('Required', 'Please enter your name');
       return;
     }
 
-    onJoinCall(finalRoomId, finalUserId);
-  }, [roomId, userId, generatedRoomId, generatedUserId, onJoinCall]);
+    if (trimmedUserId.length < 2) {
+      Alert.alert('Invalid Name', 'Name must be at least 2 characters');
+      return;
+    }
+
+    onJoinCall(trimmedRoomId, trimmedUserId);
+  }, [roomId, userId, onJoinCall]);
 
   const handleRandomRoom = useCallback(() => {
     setRoomId(`room_${Math.random().toString(36).substring(2, 8)}`);
@@ -64,6 +66,8 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
   const handleChangeUserId = useCallback((text: string) => {
     setUserId(text);
   }, []);
+
+  const isFormValid = roomId.trim().length >= 3 && userId.trim().length >= 2;
 
   return (
     <KeyboardAvoidingView
@@ -78,7 +82,7 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
         >
           {({ pressed }) => (
             <MaterialCommunityIcons
-              name="cog"
+              name="cog-outline"
               size={28}
               color={pressed ? COLORS.primary : COLORS.textSecondary}
             />
@@ -87,20 +91,20 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
 
         {/* Logo */}
         <View style={styles.logoContainer}>
-          <MaterialCommunityIcons name="video" size={64} color={COLORS.primary} />
+          <MaterialCommunityIcons name="video-outline" size={64} color={COLORS.primary} />
         </View>
 
         <ThemeText variant="large" style={styles.title}>
           Video Call
         </ThemeText>
         <ThemeText variant="small" style={styles.subtitle}>
-          Enter room details or use random values
+          Enter room details to join a call
         </ThemeText>
 
         {/* Room ID Input */}
         <View style={styles.inputGroup}>
           <ThemeText variant="small" style={styles.label}>
-            Room ID
+            Room ID *
           </ThemeText>
           <View style={styles.inputRow}>
             <ThemeTextInput
@@ -121,7 +125,7 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
                 <MaterialCommunityIcons
                   name="dice-5"
                   size={24}
-                  color={pressed ? COLORS.textMuted : COLORS.primary}
+                  color={pressed ? COLORS.textMuted : COLORS.text}
                 />
               )}
             </Pressable>
@@ -131,7 +135,7 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
         {/* User ID Input */}
         <View style={styles.inputGroup}>
           <ThemeText variant="small" style={styles.label}>
-            Your Name
+            Your Name *
           </ThemeText>
           <ThemeTextInput
             variant="medium"
@@ -146,8 +150,13 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
 
         {/* Join Button */}
         <Pressable
-          style={({ pressed }) => [styles.joinButton, pressed && styles.joinButtonPressed]}
-          onPress={handleJoin}
+          style={({ pressed }) => [
+            styles.joinButton,
+            !isFormValid && styles.joinButtonDisabled,
+            pressed && isFormValid && styles.joinButtonPressed,
+          ]}
+          onPress={isFormValid ? handleJoin : undefined}
+          disabled={!isFormValid}
         >
           <MaterialCommunityIcons name="video-outline" size={24} color={COLORS.background} />
           <ThemeText variant="medium" style={[styles.joinButtonText, { color: COLORS.background }]}>

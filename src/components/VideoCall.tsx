@@ -8,7 +8,6 @@ import { MediaStream } from 'react-native-webrtc';
 import { LocalVideo } from './LocalVideo';
 import { RemoteVideo } from './RemoteVideo';
 import { Controls } from './Controls';
-import { usePermissions } from '../hooks/usePermissions';
 import { SignalingClient } from '../services/signalingClient';
 import { PeerConnection } from '../services/peerConnection';
 import { CallState, SignalingMessage, ICEServer, CallUser } from '../types';
@@ -39,9 +38,6 @@ export function VideoCall({
   onError,
   style,
 }: VideoCallProps) {
-  // Permissions
-  const { requestPermissions } = usePermissions();
-
   // Media state
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -210,18 +206,11 @@ export function VideoCall({
         await client.connect();
         signalingRef.current = client;
 
-        // Request permissions
-        updateCallState('requesting-permissions');
-        const granted = await requestPermissions();
+        // Start local media (permissions already requested at app launch)
+        await startLocalMedia();
 
-        if (granted) {
-          await startLocalMedia();
-
-          // Join room
-          client.joinRoom(roomId, userId);
-        } else {
-          onError?.(new Error('Camera and microphone permissions are required'));
-        }
+        // Join room
+        client.joinRoom(roomId, userId);
       } catch (error) {
         console.error('[VideoCall] Initialization error:', error);
         onError?.(error as Error);

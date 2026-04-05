@@ -4,6 +4,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { APP_CONFIG } from '../../config';
 
 const SETTINGS_KEY = '@video_call_settings';
 
@@ -12,7 +13,7 @@ export interface AppSettings {
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
-  signalingUrl: 'http://localhost:8080',
+  signalingUrl: APP_CONFIG.defaultSignalingUrl,
 };
 
 interface SettingsContextValue {

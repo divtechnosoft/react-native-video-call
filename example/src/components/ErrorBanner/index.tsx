@@ -22,8 +22,8 @@ export const ErrorBanner = memo(function ErrorBanner({ message, onDismiss }: Err
 
   return (
     <View style={styles.container}>
-      <MaterialCommunityIcons name="alert-circle" size={20} color={COLORS.text} />
-      <ThemeText variant="small" style={styles.message} numberOfLines={2}>
+      <MaterialCommunityIcons name="alert-circle-outline" size={20} color={COLORS.text} />
+      <ThemeText variant="small" style={styles.message} numberOfLines={3}>
         {message}
       </ThemeText>
       <Pressable

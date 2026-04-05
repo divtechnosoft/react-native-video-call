@@ -32,31 +32,31 @@ export function CallStatusOverlay({ callState }: CallStatusOverlayProps) {
     switch (callState) {
       case 'requesting-permissions':
         return {
-          icon: 'key',
+          icon: 'camera-outline',
           text: 'Requesting permissions...',
           showSpinner: true,
-          color: COLORS.primary,
+          color: COLORS.textSecondary,
         };
       case 'connecting':
         return {
-          icon: 'link-variant',
+          icon: 'phone-outline',
           text: 'Connecting...',
           showSpinner: true,
-          color: COLORS.primary,
+          color: COLORS.textSecondary,
         };
       case 'reconnecting':
         return {
           icon: 'refresh',
           text: 'Reconnecting...',
           showSpinner: true,
-          color: COLORS.warning,
+          color: COLORS.textMuted,
         };
       case 'failed':
         return {
-          icon: 'alert-circle',
+          icon: 'phone-remove',
           text: 'Connection failed',
           showSpinner: false,
-          color: COLORS.error,
+          color: COLORS.textMuted,
         };
       case 'ended':
         return {
@@ -74,7 +74,7 @@ export function CallStatusOverlay({ callState }: CallStatusOverlayProps) {
         };
       default:
         return {
-          icon: 'information',
+          icon: 'information-outline',
           text: callState,
           showSpinner: false,
           color: COLORS.textSecondary,

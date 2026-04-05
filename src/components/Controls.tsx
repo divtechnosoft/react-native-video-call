@@ -3,7 +3,8 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export interface ControlsProps {
   isMuted: boolean;
@@ -23,31 +24,44 @@ export function Controls({
   return (
     <View style={styles.container}>
       {/* Mute button */}
-      <TouchableOpacity
-        style={[styles.button, isMuted && styles.buttonActive]}
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          isMuted && styles.buttonActive,
+          pressed && styles.buttonPressed,
+        ]}
         onPress={onToggleMute}
       >
-        <Text style={styles.buttonIcon}>{isMuted ? '🔇' : '🎤'}</Text>
-        <Text style={styles.buttonLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
-      </TouchableOpacity>
+        <MaterialCommunityIcons
+          name={isMuted ? 'microphone-off' : 'microphone'}
+          size={24}
+          color="#ffffff"
+        />
+      </Pressable>
 
       {/* Camera toggle button */}
-      <TouchableOpacity
-        style={[styles.button, isCameraOff && styles.buttonActive]}
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          isCameraOff && styles.buttonActive,
+          pressed && styles.buttonPressed,
+        ]}
         onPress={onToggleCamera}
       >
-        <Text style={styles.buttonIcon}>{isCameraOff ? '📷' : '📹'}</Text>
-        <Text style={styles.buttonLabel}>{isCameraOff ? 'Camera On' : 'Camera Off'}</Text>
-      </TouchableOpacity>
+        <MaterialCommunityIcons
+          name={isCameraOff ? 'video-off-outline' : 'video-outline'}
+          size={24}
+          color="#ffffff"
+        />
+      </Pressable>
 
       {/* End call button */}
-      <TouchableOpacity
-        style={[styles.button, styles.endCallButton]}
+      <Pressable
+        style={({ pressed }) => [styles.button, styles.endCallButton, pressed && styles.buttonPressed]}
         onPress={onEndCall}
       >
-        <Text style={styles.buttonIcon}>📞</Text>
-        <Text style={styles.buttonLabel}>End</Text>
-      </TouchableOpacity>
+        <MaterialCommunityIcons name="phone-hangup" size={24} color="#ffffff" />
+      </Pressable>
     </View>
   );
 }
@@ -57,29 +71,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 24,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    gap: 20,
   },
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginHorizontal: 12,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   buttonActive: {
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
-  buttonIcon: {
-    fontSize: 24,
-  },
-  buttonLabel: {
-    color: '#fff',
-    fontSize: 10,
-    marginTop: 4,
+  buttonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
   },
   endCallButton: {
     backgroundColor: '#FF3B30',

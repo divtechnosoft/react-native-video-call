@@ -2,10 +2,15 @@
  * App Configuration
  */
 
+import { Platform } from 'react-native';
+
+// For Android emulator, use 10.0.2.2 to access host machine's localhost
+const DEFAULT_HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+
 export const APP_CONFIG = {
   appName: 'Video Call',
   version: '1.0.0',
-  defaultSignalingUrl: 'http://localhost:8080',
+  defaultSignalingUrl: `http://${DEFAULT_HOST}:8080`,
 } as const;
 
 export const COLORS = {

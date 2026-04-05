@@ -27,6 +27,11 @@ export function CallScreen({ roomId, userId, onEndCall }: CallScreenProps) {
       setCallState(state);
       console.log('[CallScreen] Call state:', state);
 
+      // Clear error when state changes
+      if (state !== 'failed') {
+        setError(null);
+      }
+
       // Auto-redirect on ended states
       if (state === 'ended' || state === 'remote-ended') {
         const isRemote = state === 'remote-ended';
@@ -44,7 +49,8 @@ export function CallScreen({ roomId, userId, onEndCall }: CallScreenProps) {
 
   const handleError = useCallback((err: Error) => {
     console.error('[CallScreen] Error:', err);
-    setError(err.message || 'An unexpected error occurred');
+    const errorMessage = err.message || 'An unexpected error occurred';
+    setError(errorMessage);
   }, []);
 
   const handleDismissError = useCallback(() => {
@@ -65,11 +71,11 @@ export function CallScreen({ roomId, userId, onEndCall }: CallScreenProps) {
       {/* Top bar with room info */}
       <View style={styles.topBar}>
         <View style={styles.roomInfo}>
-          <MaterialCommunityIcons name="video" size={14} color={COLORS.text} />
+          <MaterialCommunityIcons name="video-outline" size={16} color={COLORS.text} />
           <ThemeText variant="small" style={styles.roomLabel}>{roomId}</ThemeText>
         </View>
         <View style={styles.userInfo}>
-          <MaterialCommunityIcons name="account" size={14} color={COLORS.textSecondary} />
+          <MaterialCommunityIcons name="account-outline" size={16} color={COLORS.textSecondary} />
           <ThemeText variant="small" style={styles.userLabel}>{userId}</ThemeText>
         </View>
       </View>
@@ -77,7 +83,7 @@ export function CallScreen({ roomId, userId, onEndCall }: CallScreenProps) {
       {/* Call state indicator */}
       <CallStatusOverlay callState={callState} />
 
-      {/* Error message - use ternary to prevent crash */}
+      {/* Error message */}
       {error ? (
         <ErrorBanner message={error} onDismiss={handleDismissError} />
       ) : null}

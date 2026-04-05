@@ -3,7 +3,8 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { RTCView, MediaStream } from 'react-native-webrtc';
 import { CallState } from '../types';
 
@@ -17,10 +18,12 @@ export function RemoteVideo({ stream, callState }: RemoteVideoProps) {
   if (callState === 'connecting' || callState === 'reconnecting') {
     return (
       <View style={styles.placeholder}>
-        <ActivityIndicator size="large" color="#fff" />
-        <Text style={styles.placeholderText}>
-          {callState === 'reconnecting' ? 'Reconnecting...' : 'Connecting...'}
-        </Text>
+        <ActivityIndicator size="large" color="#ffffff" />
+        <View style={styles.textContainer}>
+          <View style={styles.placeholderText}>
+            {callState === 'reconnecting' ? 'Reconnecting...' : 'Connecting...'}
+          </View>
+        </View>
       </View>
     );
   }
@@ -29,9 +32,11 @@ export function RemoteVideo({ stream, callState }: RemoteVideoProps) {
   if (callState === 'failed') {
     return (
       <View style={styles.placeholder}>
-        <Text style={styles.errorIcon}>⚠️</Text>
-        <Text style={styles.errorText}>Connection Failed</Text>
-        <Text style={styles.subText}>Please try again</Text>
+        <MaterialCommunityIcons name="alert-circle-outline" size={64} color="#888888" />
+        <View style={styles.textContainer}>
+          <View style={styles.errorText}>Connection Failed</View>
+          <View style={styles.subText}>Please try again</View>
+        </View>
       </View>
     );
   }
@@ -40,9 +45,12 @@ export function RemoteVideo({ stream, callState }: RemoteVideoProps) {
   if (callState === 'ended' || callState === 'remote-ended') {
     return (
       <View style={styles.placeholder}>
-        <Text style={styles.placeholderText}>
-          {callState === 'remote-ended' ? 'Call ended by other participant' : 'Call ended'}
-        </Text>
+        <MaterialCommunityIcons name="phone-missed" size={64} color="#888888" />
+        <View style={styles.textContainer}>
+          <View style={styles.placeholderText}>
+            {callState === 'remote-ended' ? 'Call ended by other participant' : 'Call ended'}
+          </View>
+        </View>
       </View>
     );
   }
@@ -51,8 +59,10 @@ export function RemoteVideo({ stream, callState }: RemoteVideoProps) {
   if (!stream || callState === 'idle' || callState === 'requesting-permissions') {
     return (
       <View style={styles.placeholder}>
-        <Text style={styles.waitingIcon}>📹</Text>
-        <Text style={styles.placeholderText}>Waiting for participant...</Text>
+        <MaterialCommunityIcons name="account-outline" size={80} color="#555555" />
+        <View style={styles.textContainer}>
+          <View style={styles.placeholderText}>Waiting for participant...</View>
+        </View>
       </View>
     );
   }
@@ -73,29 +83,25 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     flex: 1,
-    backgroundColor: '#16213e',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  textContainer: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
   placeholderText: {
-    color: '#fff',
+    color: '#aaaaaa',
     fontSize: 16,
-    marginTop: 12,
-  },
-  waitingIcon: {
-    fontSize: 48,
-  },
-  errorIcon: {
-    fontSize: 48,
   },
   errorText: {
-    color: '#FF3B30',
+    color: '#888888',
     fontSize: 18,
     fontWeight: '600',
-    marginTop: 12,
   },
   subText: {
-    color: 'rgba(255,255,255,0.6)',
+    color: '#666666',
     fontSize: 14,
     marginTop: 8,
   },
