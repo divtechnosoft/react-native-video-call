@@ -3,7 +3,7 @@
  */
 
 import React, { memo, useEffect, useState, useCallback, useRef } from 'react';
-import { View, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Pressable, ActivityIndicator, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SignalingClient } from 'react-native-video-call';
 import { ThemeText } from '../../components';
@@ -29,6 +29,8 @@ export const WaitingScreen = memo(function WaitingScreen({
   const [isConnecting, setIsConnecting] = useState(true);
   const signalingRef = useRef<SignalingClient | null>(null);
 
+  console.log('[WaitingScreen] Render - Platform:', Platform.OS, 'URL:', settings.signalingUrl);
+
   const handleUserJoined = useCallback((joinedUserId: string) => {
     console.log('[WaitingScreen] User joined:', joinedUserId);
     if (joinedUserId !== userId) {
@@ -37,24 +39,31 @@ export const WaitingScreen = memo(function WaitingScreen({
   }, [userId, onParticipantJoined]);
 
   useEffect(() => {
+    console.log('[WaitingScreen] useEffect - Connecting to:', settings.signalingUrl);
+
     const connect = async () => {
       try {
+        console.log('[WaitingScreen] Creating SignalingClient...');
         const client = new SignalingClient(settings.signalingUrl);
 
         client.onMessage((message) => {
+          console.log('[WaitingScreen] Received message:', message.type);
           if (message.type === 'user-joined') {
             handleUserJoined(message.userId);
           } else if (message.type === 'room-users' && message.users.length > 0) {
             // There are already users in the room
             const otherUsers = message.users.filter((id: string) => id !== userId);
+            console.log('[WaitingScreen] Room users:', message.users, 'Other users:', otherUsers);
             if (otherUsers.length > 0) {
               onParticipantJoined();
             }
           } else if (message.type === 'error') {
+            console.error('[WaitingScreen] Server error:', message.message);
             setError(message.message);
           }
         });
 
+        console.log('[WaitingScreen] Calling client.connect()...');
         await client.connect();
         signalingRef.current = client;
         client.joinRoom(roomId, userId);
@@ -62,7 +71,8 @@ export const WaitingScreen = memo(function WaitingScreen({
         console.log('[WaitingScreen] Connected to signaling server');
       } catch (err) {
         console.error('[WaitingScreen] Connection error:', err);
-        setError('Failed to connect to server');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to connect to server';
+        setError(`Connection failed: ${errorMessage}`);
         setIsConnecting(false);
       }
     };
@@ -70,6 +80,7 @@ export const WaitingScreen = memo(function WaitingScreen({
     connect();
 
     return () => {
+      console.log('[WaitingScreen] Cleanup');
       if (signalingRef.current) {
         signalingRef.current.leaveRoom(roomId, userId);
         signalingRef.current.disconnect();
@@ -95,6 +106,9 @@ export const WaitingScreen = memo(function WaitingScreen({
           </ThemeText>
           <ThemeText variant="small" style={styles.subtitle}>
             {error}
+          </ThemeText>
+          <ThemeText variant="small" style={styles.subtitle}>
+            URL: {settings.signalingUrl}
           </ThemeText>
           <Pressable
             style={({ pressed }) => [styles.cancelButton, pressed && styles.cancelButtonPressed]}
@@ -129,6 +143,11 @@ export const WaitingScreen = memo(function WaitingScreen({
           <ThemeText variant="small" style={styles.roomIdLabel}>Room:</ThemeText>
           <ThemeText variant="medium" style={styles.roomIdValue}>{roomId}</ThemeText>
         </View>
+
+        {/* Server URL display for debugging */}
+        <ThemeText variant="small" style={styles.subtitle}>
+          Server: {settings.signalingUrl}
+        </ThemeText>
 
         {/* Loading indicator */}
         <ActivityIndicator size="large" color={COLORS.textMuted} style={{ marginBottom: 40 }} />

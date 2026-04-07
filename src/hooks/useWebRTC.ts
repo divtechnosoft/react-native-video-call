@@ -47,6 +47,7 @@ export function useWebRTC(options: UseWebRTCOptions): UseWebRTCReturn {
 
   const pcRef = useRef<PeerConnection | null>(null);
   const signalingRef = useRef<SignalingCallbacks | null>(null);
+  const remoteUserIdRef = useRef<string | null>(null);
 
   // Update call state helper
   const updateCallState = useCallback(
@@ -63,12 +64,13 @@ export function useWebRTC(options: UseWebRTCOptions): UseWebRTCReturn {
       pcRef.current.close();
     }
 
-    const pc = new PeerConnection(iceServers);
+    const pc = new PeerConnection({ iceServers });
 
-    // Handle ICE candidates
+    // Handle ICE candidates - use ref to get current remoteUserId
     pc.onIceCandidate((candidate) => {
-      if (remoteUserId && signalingRef.current) {
-        signalingRef.current.sendIceCandidate(remoteUserId, candidate);
+      const currentRemoteUserId = remoteUserIdRef.current;
+      if (currentRemoteUserId && signalingRef.current) {
+        signalingRef.current.sendIceCandidate(currentRemoteUserId, candidate);
       }
     });
 
@@ -105,7 +107,7 @@ export function useWebRTC(options: UseWebRTCOptions): UseWebRTCReturn {
 
     pcRef.current = pc;
     return pc;
-  }, [iceServers, remoteUserId, updateCallState, onError]);
+  }, [iceServers, updateCallState, onError]);
 
   // Start local media
   const startLocalMedia = useCallback(async (): Promise<MediaStream> => {
@@ -137,6 +139,7 @@ export function useWebRTC(options: UseWebRTCOptions): UseWebRTCReturn {
           // Initiate call to existing users
           if (message.users.length > 0) {
             const targetUserId = message.users[0];
+            remoteUserIdRef.current = targetUserId;
             setRemoteUserId(targetUserId);
             updateCallState('connecting');
 
@@ -153,12 +156,14 @@ export function useWebRTC(options: UseWebRTCOptions): UseWebRTCReturn {
 
         case 'user-joined':
           console.log('[useWebRTC] User joined:', message.userId);
+          remoteUserIdRef.current = message.userId;
           setRemoteUserId(message.userId);
           break;
 
         case 'offer':
           // Received offer - create answer
           if (pcRef.current && message.sdp) {
+            remoteUserIdRef.current = message.fromUserId;
             setRemoteUserId(message.fromUserId);
             updateCallState('connecting');
 
@@ -197,6 +202,7 @@ export function useWebRTC(options: UseWebRTCOptions): UseWebRTCReturn {
 
         case 'user-left':
           setRemoteStream(null);
+          remoteUserIdRef.current = null;
           setRemoteUserId(null);
           updateCallState('remote-ended');
           break;
@@ -221,6 +227,7 @@ export function useWebRTC(options: UseWebRTCOptions): UseWebRTCReturn {
     setLocalStream(null);
     setRemoteStream(null);
     setCallState('ended');
+    remoteUserIdRef.current = null;
     setRemoteUserId(null);
 
     onCallStateChange?.('ended');

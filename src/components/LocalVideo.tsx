@@ -2,8 +2,8 @@
  * LocalVideo Component - Displays local video stream (self-view)
  */
 
-import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import React, { memo } from 'react';
+import { View, StyleSheet, Text, Platform } from 'react-native';
 import { RTCView, MediaStream } from 'react-native-webrtc';
 
 export interface LocalVideoProps {
@@ -12,7 +12,7 @@ export interface LocalVideoProps {
   isCameraOff?: boolean;
 }
 
-export function LocalVideo({ stream, isMuted, isCameraOff }: LocalVideoProps) {
+export const LocalVideo = memo(function LocalVideo({ stream, isMuted, isCameraOff }: LocalVideoProps) {
   // Show placeholder when no stream
   if (!stream) {
     return (
@@ -22,13 +22,23 @@ export function LocalVideo({ stream, isMuted, isCameraOff }: LocalVideoProps) {
     );
   }
 
+  const streamURL = stream.toURL();
+  if (!streamURL) {
+    return (
+      <View style={styles.placeholder}>
+        <Text style={styles.placeholderText}>No Video</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <RTCView
-        streamURL={stream.toURL()}
+        streamURL={streamURL}
         style={styles.video}
         mirror={true}
         objectFit="cover"
+        zOrder={Platform.OS === 'ios' ? 1 : 0}
       />
 
       {/* Camera off overlay */}
@@ -46,7 +56,7 @@ export function LocalVideo({ stream, isMuted, isCameraOff }: LocalVideoProps) {
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

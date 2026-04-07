@@ -2,8 +2,8 @@
  * RemoteVideo Component - Displays remote participant's video stream
  */
 
-import React from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { memo } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { RTCView, MediaStream } from 'react-native-webrtc';
 import { CallState } from '../types';
@@ -13,16 +13,17 @@ export interface RemoteVideoProps {
   callState: CallState;
 }
 
-export function RemoteVideo({ stream, callState }: RemoteVideoProps) {
+export const RemoteVideo = memo(function RemoteVideo({ stream, callState }: RemoteVideoProps) {
+
   // Show connecting state
   if (callState === 'connecting' || callState === 'reconnecting') {
     return (
       <View style={styles.placeholder}>
         <ActivityIndicator size="large" color="#ffffff" />
         <View style={styles.textContainer}>
-          <View style={styles.placeholderText}>
+          <Text style={styles.placeholderText}>
             {callState === 'reconnecting' ? 'Reconnecting...' : 'Connecting...'}
-          </View>
+          </Text>
         </View>
       </View>
     );
@@ -34,8 +35,8 @@ export function RemoteVideo({ stream, callState }: RemoteVideoProps) {
       <View style={styles.placeholder}>
         <MaterialCommunityIcons name="alert-circle-outline" size={64} color="#888888" />
         <View style={styles.textContainer}>
-          <View style={styles.errorText}>Connection Failed</View>
-          <View style={styles.subText}>Please try again</View>
+          <Text style={styles.errorText}>Connection Failed</Text>
+          <Text style={styles.subText}>Please try again</Text>
         </View>
       </View>
     );
@@ -47,9 +48,9 @@ export function RemoteVideo({ stream, callState }: RemoteVideoProps) {
       <View style={styles.placeholder}>
         <MaterialCommunityIcons name="phone-missed" size={64} color="#888888" />
         <View style={styles.textContainer}>
-          <View style={styles.placeholderText}>
+          <Text style={styles.placeholderText}>
             {callState === 'remote-ended' ? 'Call ended by other participant' : 'Call ended'}
-          </View>
+          </Text>
         </View>
       </View>
     );
@@ -61,7 +62,19 @@ export function RemoteVideo({ stream, callState }: RemoteVideoProps) {
       <View style={styles.placeholder}>
         <MaterialCommunityIcons name="account-outline" size={80} color="#555555" />
         <View style={styles.textContainer}>
-          <View style={styles.placeholderText}>Waiting for participant...</View>
+          <Text style={styles.placeholderText}>Waiting for participant...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const streamURL = stream.toURL();
+  if (!streamURL) {
+    return (
+      <View style={styles.placeholder}>
+        <MaterialCommunityIcons name="video-off-outline" size={64} color="#888888" />
+        <View style={styles.textContainer}>
+          <Text style={styles.placeholderText}>No video stream</Text>
         </View>
       </View>
     );
@@ -70,12 +83,13 @@ export function RemoteVideo({ stream, callState }: RemoteVideoProps) {
   // Show remote video
   return (
     <RTCView
-      streamURL={stream.toURL()}
+      streamURL={streamURL}
       style={styles.video}
       objectFit="cover"
+      zOrder={Platform.OS === 'ios' ? 0 : 0}
     />
   );
-}
+});
 
 const styles = StyleSheet.create({
   video: {

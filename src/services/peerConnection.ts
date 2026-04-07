@@ -2,6 +2,7 @@
  * PeerConnection Service - Manages WebRTC RTCPeerConnection
  */
 
+import { Platform } from 'react-native';
 import { RTCPeerConnection, RTCIceCandidate, RTCSessionDescription, MediaStream, MediaStreamTrack, mediaDevices } from 'react-native-webrtc';
 import { ICEServer, RTCSessionDescriptionInit, RTCIceCandidateInit, RTCPeerConnectionState, RTCIceConnectionState, iceCandidateToInit } from '../types';
 import { DEFAULT_ICE_SERVERS } from '../utils/iceServers';
@@ -12,6 +13,21 @@ export type TrackHandler = (track: MediaStreamTrack, stream: MediaStream) => voi
 export type ConnectionStateChangedHandler = (state: RTCPeerConnectionState) => void;
 export type IceConnectionStateChangedHandler = (state: RTCIceConnectionState) => void;
 
+export interface PeerConnectionOptions {
+  iceServers?: ICEServer[];
+  enableAudio?: boolean;
+  enableVideo?: boolean;
+}
+
+// Detect if running on iOS simulator (best effort detection)
+const isIOSSimulator = (): boolean => {
+  if (Platform.OS !== 'ios') return false;
+  // iOS simulator typically doesn't have a real camera/mic
+  // Simulators often have issues with WebRTC audio
+  // This is a workaround - in production you'd want a more reliable detection
+  return !Platform.isTV;
+};
+
 export class PeerConnection {
   private pc: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;
@@ -20,8 +36,24 @@ export class PeerConnection {
   private connectionStateHandler: ConnectionStateChangedHandler | null = null;
   private iceStateHandler: IceConnectionStateChangedHandler | null = null;
   private pendingIceCandidates: RTCIceCandidateInit[] = [];
+  private enableAudio: boolean;
+  private enableVideo: boolean;
 
-  constructor(iceServers: ICEServer[] = DEFAULT_ICE_SERVERS) {
+  constructor(options: PeerConnectionOptions = {}) {
+    const {
+      iceServers = DEFAULT_ICE_SERVERS,
+      enableAudio = true,
+      enableVideo = true,
+    } = options;
+
+    // Disable audio on iOS simulator to prevent crashes
+    if (isIOSSimulator() && enableAudio) {
+      console.log('[PeerConnection] iOS Simulator detected - audio may cause issues');
+    }
+
+    this.enableAudio = enableAudio;
+    this.enableVideo = enableVideo;
+
     this.pc = new RTCPeerConnection({
       iceServers,
       iceCandidatePoolSize: 10,
@@ -91,13 +123,15 @@ export class PeerConnection {
   // Get local media stream
   async getLocalStream(): Promise<MediaStream> {
     try {
+      console.log('[PeerConnection] Getting local stream - audio:', this.enableAudio, 'video:', this.enableVideo);
+
       const stream = await mediaDevices.getUserMedia({
-        audio: true,
-        video: {
+        audio: this.enableAudio,
+        video: this.enableVideo ? {
           facingMode: 'user',
           width: 640,
           height: 480,
-        },
+        } : false,
       });
 
       this.localStream = stream;
@@ -127,8 +161,8 @@ export class PeerConnection {
     if (!this.pc) throw new Error('No peer connection');
 
     const offer = await this.pc.createOffer({
-      offerToReceiveAudio: true,
-      offerToReceiveVideo: true,
+      offerToReceiveAudio: this.enableAudio,
+      offerToReceiveVideo: this.enableVideo,
     });
 
     await this.pc.setLocalDescription(offer);

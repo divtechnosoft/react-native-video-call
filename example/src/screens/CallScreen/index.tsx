@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, Alert } from 'react-native';
+import { View, Alert, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { VideoCall, CallState } from 'react-native-video-call';
 import { CallStatusOverlay, ErrorBanner, ThemeText } from '../../components';
@@ -21,6 +21,10 @@ export function CallScreen({ roomId, userId, onEndCall }: CallScreenProps) {
   const { settings } = useSettings();
   const [callState, setCallState] = useState<CallState>('idle');
   const [error, setError] = useState<string | null>(null);
+
+  // Note: iOS Simulator has WebRTC audio limitations
+  // If experiencing crashes on iOS Simulator, test on a physical device
+  // or check if audio needs to be disabled
 
   const handleCallStateChange = useCallback(
     (state: CallState) => {

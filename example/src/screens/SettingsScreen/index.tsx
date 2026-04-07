@@ -14,7 +14,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSettings } from '../../context';
 import { ThemeText, ThemeTextInput } from '../../components';
-import { COLORS } from '../../config';
+import { COLORS, APP_CONFIG } from '../../config';
 import { styles } from './style';
 
 interface SettingsScreenProps {
@@ -47,12 +47,12 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
   }, [signalingUrl, updateSettings, onClose]);
 
   const handleReset = useCallback(() => {
-    Alert.alert('Reset Settings', 'Reset signaling URL to default?', [
+    Alert.alert('Reset Settings', `Reset signaling URL to default? (${APP_CONFIG.defaultSignalingUrl})`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Reset',
         style: 'destructive',
-        onPress: () => setSignalingUrl('http://localhost:8080'),
+        onPress: () => setSignalingUrl(APP_CONFIG.defaultSignalingUrl),
       },
     ]);
   }, []);
@@ -109,7 +109,10 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
           <View style={styles.hintBox}>
             <MaterialCommunityIcons name="information-outline" size={18} color={COLORS.textMuted} />
             <ThemeText variant="small" style={styles.hint}>
-              For local testing, use your machine&apos;s IP address instead of localhost.{'\n'}
+              {Platform.OS === 'android'
+                ? 'Android emulator uses 10.0.2.2 to reach host machine.\nDefault: http://10.0.2.2:8080'
+                : 'iOS simulator uses localhost to reach host machine.\nDefault: http://localhost:8080'}
+              {'\n\n'}For physical devices, use your machine&apos;s IP address.{'\n'}
               Example: http://192.168.1.100:8080
             </ThemeText>
           </View>

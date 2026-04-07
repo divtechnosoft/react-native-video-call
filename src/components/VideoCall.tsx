@@ -20,6 +20,8 @@ export interface VideoCallProps {
   userId: string;
   signalingUrl?: string;
   iceServers?: ICEServer[];
+  enableAudio?: boolean;
+  enableVideo?: boolean;
   onCallStateChange?: (state: CallState) => void;
   onUserJoined?: (user: CallUser) => void;
   onUserLeft?: (userId: string) => void;
@@ -32,6 +34,8 @@ export function VideoCall({
   userId,
   signalingUrl = DEFAULT_SIGNALING_URL,
   iceServers = DEFAULT_ICE_SERVERS,
+  enableAudio = true,
+  enableVideo = true,
   onCallStateChange,
   onUserJoined,
   onUserLeft,
@@ -42,13 +46,15 @@ export function VideoCall({
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [callState, setCallState] = useState<CallState>('idle');
-  const [remoteUserId, setRemoteUserId] = useState<string | null>(null);
+  const [_remoteUserId, setRemoteUserId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
 
-  // Refs
+  // Refs - use refs for cleanup to avoid stale closures
   const pcRef = useRef<PeerConnection | null>(null);
   const signalingRef = useRef<SignalingClient | null>(null);
+  const remoteUserIdRef = useRef<string | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
 
   // Update call state
   const updateCallState = useCallback(
@@ -65,12 +71,17 @@ export function VideoCall({
       pcRef.current.close();
     }
 
-    const pc = new PeerConnection(iceServers);
+    const pc = new PeerConnection({
+      iceServers,
+      enableAudio,
+      enableVideo,
+    });
 
-    // Handle ICE candidates
+    // Handle ICE candidates - use ref to get current remoteUserId
     pc.onIceCandidate((candidate) => {
-      if (remoteUserId && signalingRef.current) {
-        signalingRef.current.sendIceCandidate(remoteUserId, candidate, userId);
+      const currentRemoteUserId = remoteUserIdRef.current;
+      if (currentRemoteUserId && signalingRef.current) {
+        signalingRef.current.sendIceCandidate(currentRemoteUserId, candidate, userId);
       }
     });
 
@@ -83,6 +94,7 @@ export function VideoCall({
 
     // Handle connection state changes
     pc.onConnectionStateChange((state) => {
+      console.log('[VideoCall] Connection state:', state);
       if (state === 'connected') {
         updateCallState('connected');
       } else if (state === 'disconnected') {
@@ -95,7 +107,7 @@ export function VideoCall({
 
     pcRef.current = pc;
     return pc;
-  }, [iceServers, remoteUserId, userId, updateCallState, onError]);
+  }, [iceServers, userId, updateCallState, onError, enableAudio, enableVideo]);
 
   // Handle signaling messages
   const handleSignalingMessage = useCallback(
@@ -105,6 +117,7 @@ export function VideoCall({
           // Initiate call to existing users
           if (message.users.length > 0) {
             const targetUserId = message.users[0];
+            remoteUserIdRef.current = targetUserId;
             setRemoteUserId(targetUserId);
             updateCallState('connecting');
 
@@ -120,6 +133,7 @@ export function VideoCall({
           break;
 
         case 'user-joined':
+          remoteUserIdRef.current = message.userId;
           setRemoteUserId(message.userId);
           onUserJoined?.({ userId: message.userId });
           break;
@@ -127,6 +141,7 @@ export function VideoCall({
         case 'offer':
           // Received offer - create answer
           if (pcRef.current && message.sdp) {
+            remoteUserIdRef.current = message.fromUserId;
             setRemoteUserId(message.fromUserId);
             updateCallState('connecting');
 
@@ -165,6 +180,7 @@ export function VideoCall({
 
         case 'user-left':
           setRemoteStream(null);
+          remoteUserIdRef.current = null;
           setRemoteUserId(null);
           updateCallState('remote-ended');
           onUserLeft?.(message.userId);
@@ -184,6 +200,7 @@ export function VideoCall({
       const pc = pcRef.current || initPeerConnection();
       const stream = await pc.getLocalStream();
       pc.addLocalStream(stream);
+      localStreamRef.current = stream;
       setLocalStream(stream);
       console.log('[VideoCall] Local media started');
     } catch (error) {
@@ -194,6 +211,8 @@ export function VideoCall({
 
   // Initialize
   useEffect(() => {
+    let isMounted = true;
+
     const init = async () => {
       // Initialize peer connection
       initPeerConnection();
@@ -204,29 +223,42 @@ export function VideoCall({
 
       try {
         await client.connect();
+        if (!isMounted) return;
+
         signalingRef.current = client;
 
         // Start local media (permissions already requested at app launch)
         await startLocalMedia();
+        if (!isMounted) return;
 
         // Join room
         client.joinRoom(roomId, userId);
       } catch (error) {
         console.error('[VideoCall] Initialization error:', error);
-        onError?.(error as Error);
+        if (isMounted) {
+          onError?.(error as Error);
+        }
       }
     };
 
     init();
 
     return () => {
-      // Cleanup
+      isMounted = false;
+      console.log('[VideoCall] Cleanup');
+
+      // Use refs for cleanup to avoid stale closures
       signalingRef.current?.leaveRoom(roomId, userId);
       signalingRef.current?.disconnect();
+
+      // Stop all tracks
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
+
       pcRef.current?.close();
-      localStream?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, []); // Empty deps - we only want to initialize once
 
   // Toggle mute
   const toggleMute = useCallback(() => {
@@ -254,11 +286,14 @@ export function VideoCall({
   const handleEndCall = useCallback(() => {
     signalingRef.current?.leaveRoom(roomId, userId);
     pcRef.current?.close();
-    localStream?.getTracks().forEach((t) => t.stop());
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+    }
+    localStreamRef.current = null;
     setLocalStream(null);
     setRemoteStream(null);
     updateCallState('ended');
-  }, [roomId, userId, localStream, updateCallState]);
+  }, [roomId, userId, updateCallState]);
 
   return (
     <View style={[styles.container, style]}>

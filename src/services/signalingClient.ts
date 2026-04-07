@@ -17,18 +17,22 @@ export class SignalingClient {
 
   constructor(url: string) {
     this.url = url;
+    console.log('[SignalingClient] Created with URL:', url);
   }
 
   // Connect to signaling server
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        console.log('[SignalingClient] Connecting to:', this.url);
+
         this.socket = io(this.url, {
-          transports: ['websocket'],
+          transports: ['websocket', 'polling'], // Add polling as fallback for iOS
           reconnection: true,
           reconnectionAttempts: 10,
           reconnectionDelay: 1000,
-          timeout: 10000,
+          timeout: 20000, // Increased timeout
+          forceNew: true,
         });
 
         this.socket.on('connect', () => {
@@ -37,23 +41,31 @@ export class SignalingClient {
           resolve();
         });
 
+        this.socket.on('connecting', (transport) => {
+          console.log('[SignalingClient] Connecting via:', transport);
+        });
+
         // Room users list
         this.socket.on('room-users', (data: { users: string[] }) => {
+          console.log('[SignalingClient] Received room-users:', data.users);
           this.messageHandler?.({ type: 'room-users', users: data.users });
         });
 
         // User joined
         this.socket.on('user-joined', (data: { userId: string }) => {
+          console.log('[SignalingClient] User joined:', data.userId);
           this.messageHandler?.({ type: 'user-joined', userId: data.userId });
         });
 
         // User left
         this.socket.on('user-left', (data: { userId: string }) => {
+          console.log('[SignalingClient] User left:', data.userId);
           this.messageHandler?.({ type: 'user-left', userId: data.userId });
         });
 
         // Offer received
         this.socket.on('offer', (data: { fromUserId: string; sdp: RTCSessionDescriptionInit }) => {
+          console.log('[SignalingClient] Offer received from:', data.fromUserId);
           this.messageHandler?.({
             type: 'offer',
             fromUserId: data.fromUserId,
@@ -63,6 +75,7 @@ export class SignalingClient {
 
         // Answer received
         this.socket.on('answer', (data: { fromUserId: string; sdp: RTCSessionDescriptionInit }) => {
+          console.log('[SignalingClient] Answer received from:', data.fromUserId);
           this.messageHandler?.({
             type: 'answer',
             fromUserId: data.fromUserId,
@@ -72,6 +85,7 @@ export class SignalingClient {
 
         // ICE candidate received
         this.socket.on('ice-candidate', (data: { fromUserId: string; candidate: RTCIceCandidateInit }) => {
+          console.log('[SignalingClient] ICE candidate received from:', data.fromUserId);
           this.messageHandler?.({
             type: 'ice-candidate',
             fromUserId: data.fromUserId,
@@ -81,6 +95,7 @@ export class SignalingClient {
 
         // Error
         this.socket.on('error', (data: { message: string }) => {
+          console.error('[SignalingClient] Server error:', data.message);
           this.messageHandler?.({ type: 'error', message: data.message });
         });
 
@@ -90,11 +105,21 @@ export class SignalingClient {
         });
 
         this.socket.on('connect_error', (error) => {
-          console.error('[SignalingClient] Connection error:', error);
+          console.error('[SignalingClient] Connection error:', error.message || error);
           reject(error);
         });
 
+        this.socket.on('reconnect_attempt', (attempt) => {
+          console.log('[SignalingClient] Reconnection attempt:', attempt);
+        });
+
+        this.socket.on('reconnect_failed', () => {
+          console.error('[SignalingClient] Reconnection failed');
+          reject(new Error('Reconnection failed'));
+        });
+
       } catch (error) {
+        console.error('[SignalingClient] Failed to create socket:', error);
         reject(error);
       }
     });
@@ -112,38 +137,39 @@ export class SignalingClient {
 
   // Join a room
   joinRoom(roomId: string, userId: string) {
+    console.log('[SignalingClient] Joining room:', roomId, 'as', userId);
     this.socket?.emit('join', { roomId, userId });
-    console.log(`[SignalingClient] Joining room: ${roomId} as ${userId}`);
   }
 
   // Leave a room
   leaveRoom(roomId: string, userId: string) {
+    console.log('[SignalingClient] Leaving room:', roomId);
     this.socket?.emit('leave', { roomId, userId });
-    console.log(`[SignalingClient] Leaving room: ${roomId}`);
   }
 
   // Send SDP offer
   sendOffer(targetUserId: string, sdp: RTCSessionDescriptionInit, fromUserId?: string) {
+    console.log('[SignalingClient] Sending offer to:', targetUserId);
     this.socket?.emit('offer', {
       targetUserId,
       fromUserId,
       sdp,
     });
-    console.log(`[SignalingClient] Sending offer to ${targetUserId}`);
   }
 
   // Send SDP answer
   sendAnswer(targetUserId: string, sdp: RTCSessionDescriptionInit, fromUserId?: string) {
+    console.log('[SignalingClient] Sending answer to:', targetUserId);
     this.socket?.emit('answer', {
       targetUserId,
       fromUserId,
       sdp,
     });
-    console.log(`[SignalingClient] Sending answer to ${targetUserId}`);
   }
 
   // Send ICE candidate
   sendIceCandidate(targetUserId: string, candidate: RTCIceCandidateInit, fromUserId?: string) {
+    console.log('[SignalingClient] Sending ICE candidate to:', targetUserId);
     this.socket?.emit('ice-candidate', {
       targetUserId,
       fromUserId,
@@ -154,9 +180,9 @@ export class SignalingClient {
   // Disconnect from server
   disconnect() {
     if (this.socket) {
+      console.log('[SignalingClient] Disconnecting...');
       this.socket.disconnect();
       this.socket = null;
-      console.log('[SignalingClient] Disconnected');
     }
   }
 
