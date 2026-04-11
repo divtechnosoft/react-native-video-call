@@ -3,7 +3,7 @@
  */
 
 import React, { memo } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { RTCView, MediaStream } from 'react-native-webrtc';
 import { CallState } from '../types';
@@ -11,18 +11,24 @@ import { CallState } from '../types';
 export interface RemoteVideoProps {
   stream: MediaStream | null;
   callState: CallState;
+  isRemoteCameraOff?: boolean;
+  isRemoteMuted?: boolean;
 }
 
-export const RemoteVideo = memo(function RemoteVideo({ stream, callState }: RemoteVideoProps) {
-
+export const RemoteVideo = memo(function RemoteVideo({
+  stream,
+  callState,
+  isRemoteCameraOff = false,
+  isRemoteMuted = false,
+}: RemoteVideoProps) {
   // Show connecting state
-  if (callState === 'connecting' || callState === 'reconnecting') {
+  if (callState === 'connecting' || callState === 'reconnecting' || callState === 'resuming') {
     return (
       <View style={styles.placeholder}>
         <ActivityIndicator size="large" color="#ffffff" />
         <View style={styles.textContainer}>
-          <Text style={styles.placeholderText}>
-            {callState === 'reconnecting' ? 'Reconnecting...' : 'Connecting...'}
+          <Text style={styles.connectingText}>
+            {callState === 'reconnecting' ? 'Reconnecting...' : callState === 'resuming' ? 'Resuming...' : 'Connecting...'}
           </Text>
         </View>
       </View>
@@ -68,30 +74,56 @@ export const RemoteVideo = memo(function RemoteVideo({ stream, callState }: Remo
     );
   }
 
-  const streamURL = stream.toURL();
-  if (!streamURL) {
+  // Show paused state
+  if (callState === 'paused') {
     return (
       <View style={styles.placeholder}>
-        <MaterialCommunityIcons name="video-off-outline" size={64} color="#888888" />
+        <MaterialCommunityIcons name="phone-paused" size={64} color="#888888" />
         <View style={styles.textContainer}>
-          <Text style={styles.placeholderText}>No video stream</Text>
+          <Text style={styles.placeholderText}>Call Paused</Text>
         </View>
       </View>
     );
   }
 
-  // Show remote video
+  const streamURL = stream.toURL();
+
+  // Show remote video with camera-off overlay
   return (
-    <RTCView
-      streamURL={streamURL}
-      style={styles.video}
-      objectFit="cover"
-      zOrder={Platform.OS === 'ios' ? 0 : 0}
-    />
+    <View style={styles.container}>
+      {streamURL ? (
+        <RTCView
+          streamURL={streamURL}
+          style={styles.video}
+          objectFit="cover"
+          zOrder={0}
+        />
+      ) : null}
+
+      {/* Camera off overlay */}
+      {isRemoteCameraOff && (
+        <View style={styles.cameraOffOverlay}>
+          <View style={styles.cameraOffIcon}>
+            <MaterialCommunityIcons name="video-off" size={48} color="#ffffff" />
+          </View>
+          <Text style={styles.cameraOffText}>Camera Off</Text>
+        </View>
+      )}
+
+      {/* Muted indicator */}
+      {isRemoteMuted && (
+        <View style={styles.mutedIndicator}>
+          <MaterialCommunityIcons name="microphone-off" size={20} color="#ffffff" />
+        </View>
+      )}
+    </View>
   );
 });
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   video: {
     flex: 1,
   },
@@ -104,6 +136,10 @@ const styles = StyleSheet.create({
   textContainer: {
     marginTop: 16,
     alignItems: 'center',
+  },
+  connectingText: {
+    color: '#ffffff',
+    fontSize: 16,
   },
   placeholderText: {
     color: '#aaaaaa',
@@ -118,5 +154,32 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontSize: 14,
     marginTop: 8,
+  },
+  cameraOffOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraOffIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cameraOffText: {
+    color: '#888888',
+    fontSize: 16,
+  },
+  mutedIndicator: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 16,
+    padding: 8,
   },
 });

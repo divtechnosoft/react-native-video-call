@@ -41,6 +41,10 @@ export type SignalingMessage =
   | { type: 'ice-candidate'; fromUserId: string; candidate: RTCIceCandidateInit }
   | { type: 'user-paused'; userId: string }
   | { type: 'user-resumed'; userId: string }
+  | { type: 'user-camera-off'; userId: string }
+  | { type: 'user-camera-on'; userId: string }
+  | { type: 'user-muted'; userId: string }
+  | { type: 'user-unmuted'; userId: string }
   | { type: 'error'; message: string };
 
 // User info

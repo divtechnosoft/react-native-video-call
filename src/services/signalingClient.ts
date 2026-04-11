@@ -75,6 +75,30 @@ export class SignalingClient {
           this.messageHandler?.({ type: 'user-resumed', userId: data.userId });
         });
 
+        // User camera off
+        this.socket.on('user-camera-off', (data: { userId: string }) => {
+          console.log('[SignalingClient] User camera off:', data.userId);
+          this.messageHandler?.({ type: 'user-camera-off', userId: data.userId });
+        });
+
+        // User camera on
+        this.socket.on('user-camera-on', (data: { userId: string }) => {
+          console.log('[SignalingClient] User camera on:', data.userId);
+          this.messageHandler?.({ type: 'user-camera-on', userId: data.userId });
+        });
+
+        // User muted
+        this.socket.on('user-muted', (data: { userId: string }) => {
+          console.log('[SignalingClient] User muted:', data.userId);
+          this.messageHandler?.({ type: 'user-muted', userId: data.userId });
+        });
+
+        // User unmuted
+        this.socket.on('user-unmuted', (data: { userId: string }) => {
+          console.log('[SignalingClient] User unmuted:', data.userId);
+          this.messageHandler?.({ type: 'user-unmuted', userId: data.userId });
+        });
+
         // Offer received
         this.socket.on('offer', (data: { fromUserId: string; sdp: RTCSessionDescriptionInit }) => {
           console.log('[SignalingClient] Offer received from:', data.fromUserId);
@@ -202,6 +226,42 @@ export class SignalingClient {
   sendResume(targetUserId: string, fromUserId: string) {
     console.log('[SignalingClient] Sending resume to:', targetUserId);
     this.socket?.emit('resume', {
+      targetUserId,
+      fromUserId,
+    });
+  }
+
+  // Send camera off notification
+  sendCameraOff(targetUserId: string, fromUserId: string) {
+    console.log('[SignalingClient] Sending camera off to:', targetUserId);
+    this.socket?.emit('camera-off', {
+      targetUserId,
+      fromUserId,
+    });
+  }
+
+  // Send camera on notification
+  sendCameraOn(targetUserId: string, fromUserId: string) {
+    console.log('[SignalingClient] Sending camera on to:', targetUserId);
+    this.socket?.emit('camera-on', {
+      targetUserId,
+      fromUserId,
+    });
+  }
+
+  // Send muted notification
+  sendMuted(targetUserId: string, fromUserId: string) {
+    console.log('[SignalingClient] Sending muted to:', targetUserId);
+    this.socket?.emit('muted', {
+      targetUserId,
+      fromUserId,
+    });
+  }
+
+  // Send unmuted notification
+  sendUnmuted(targetUserId: string, fromUserId: string) {
+    console.log('[SignalingClient] Sending unmuted to:', targetUserId);
+    this.socket?.emit('unmuted', {
       targetUserId,
       fromUserId,
     });

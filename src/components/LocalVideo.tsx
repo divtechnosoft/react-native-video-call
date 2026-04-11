@@ -3,7 +3,7 @@
  */
 
 import React, { memo } from 'react';
-import { View, StyleSheet, Text, Platform } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
 import { RTCView, MediaStream } from 'react-native-webrtc';
 
 export interface LocalVideoProps {
@@ -38,7 +38,7 @@ export const LocalVideo = memo(function LocalVideo({ stream, isMuted, isCameraOf
         style={styles.video}
         mirror={true}
         objectFit="cover"
-        zOrder={Platform.OS === 'ios' ? 1 : 0}
+        zOrder={1}
       />
 
       {/* Camera off overlay */}
