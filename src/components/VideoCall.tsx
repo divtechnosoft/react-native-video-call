@@ -3,13 +3,15 @@
  */
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, StyleSheet, StatusBar } from 'react-native';
+import { View, StyleSheet, StatusBar, AppState, AppStateStatus } from 'react-native';
 import { MediaStream } from 'react-native-webrtc';
 import { LocalVideo } from './LocalVideo';
 import { RemoteVideo } from './RemoteVideo';
 import { Controls } from './Controls';
+import { PauseOverlay } from './PauseOverlay';
 import { SignalingClient } from '../services/signalingClient';
 import { PeerConnection } from '../services/peerConnection';
+import { AudioManager } from '../services/audioManager';
 import { CallState, SignalingMessage, ICEServer, CallUser } from '../types';
 import { DEFAULT_ICE_SERVERS } from '../utils/iceServers';
 
@@ -49,12 +51,18 @@ export function VideoCall({
   const [_remoteUserId, setRemoteUserId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
+  const [isSpeakerEnabled, setIsSpeakerEnabled] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
+  const [_remotePaused, setRemotePaused] = useState(false);
 
   // Refs - use refs for cleanup to avoid stale closures
   const pcRef = useRef<PeerConnection | null>(null);
   const signalingRef = useRef<SignalingClient | null>(null);
   const remoteUserIdRef = useRef<string | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const isEndingCallRef = useRef(false);
 
   // Update call state
   const updateCallState = useCallback(
@@ -178,10 +186,21 @@ export function VideoCall({
           }
           break;
 
+        case 'user-paused':
+          console.log('[VideoCall] Remote user paused:', message.userId);
+          setRemotePaused(true);
+          break;
+
+        case 'user-resumed':
+          console.log('[VideoCall] Remote user resumed:', message.userId);
+          setRemotePaused(false);
+          break;
+
         case 'user-left':
           setRemoteStream(null);
           remoteUserIdRef.current = null;
           setRemoteUserId(null);
+          setRemotePaused(false);
           updateCallState('remote-ended');
           onUserLeft?.(message.userId);
           break;
@@ -209,11 +228,145 @@ export function VideoCall({
     }
   }, [initPeerConnection]);
 
+  // Pause call (mute audio and video, notify remote)
+  const pauseCall = useCallback(() => {
+    console.log('[VideoCall] Pausing call');
+    setIsPaused(true);
+    updateCallState('paused');
+
+    // Mute local audio and video
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = false;
+      });
+      localStreamRef.current.getVideoTracks().forEach((track) => {
+        track.enabled = false;
+      });
+    }
+
+    // Notify remote user
+    if (signalingRef.current && remoteUserIdRef.current) {
+      signalingRef.current.sendPause?.(remoteUserIdRef.current, userId);
+    }
+  }, [userId, updateCallState]);
+
+  // Resume call (unmute audio and video, notify remote)
+  const resumeCall = useCallback(async () => {
+    console.log('[VideoCall] Resuming call');
+    setIsResuming(true);
+    updateCallState('resuming');
+
+    try {
+      // Unmute local audio and video
+      if (localStreamRef.current) {
+        localStreamRef.current.getAudioTracks().forEach((track) => {
+          track.enabled = true;
+        });
+        localStreamRef.current.getVideoTracks().forEach((track) => {
+          track.enabled = true;
+        });
+      }
+
+      // Restore speaker
+      await AudioManager.enableSpeaker();
+
+      // Notify remote user
+      if (signalingRef.current && remoteUserIdRef.current) {
+        signalingRef.current.sendResume?.(remoteUserIdRef.current, userId);
+      }
+
+      setIsPaused(false);
+      setIsResuming(false);
+      updateCallState('connected');
+    } catch (error) {
+      console.error('[VideoCall] Failed to resume call:', error);
+      setIsResuming(false);
+    }
+  }, [userId, updateCallState]);
+
+  // End call properly - ensure signaling is sent before cleanup
+  const handleEndCall = useCallback(async () => {
+    // Prevent multiple calls
+    if (isEndingCallRef.current) return;
+    isEndingCallRef.current = true;
+
+    console.log('[VideoCall] Ending call');
+
+    // First, send leave message and wait for it to be sent
+    if (signalingRef.current) {
+      signalingRef.current.leaveRoom(roomId, userId);
+      // Give a small delay to ensure message is sent
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      signalingRef.current.disconnect();
+    }
+
+    // Clean up audio
+    AudioManager.cleanup();
+
+    // Close peer connection
+    pcRef.current?.close();
+    pcRef.current = null;
+
+    // Stop all tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+    }
+    localStreamRef.current = null;
+
+    // Update state
+    setLocalStream(null);
+    setRemoteStream(null);
+    setIsPaused(false);
+    setIsResuming(false);
+    setRemotePaused(false);
+    updateCallState('ended');
+  }, [roomId, userId, updateCallState]);
+
+  // Handle app state changes (for phone call detection)
+  const handleAppStateChange = useCallback(
+    async (nextAppState: AppStateStatus) => {
+      console.log('[VideoCall] App state:', appStateRef.current, '->', nextAppState);
+
+      const previousState = appStateRef.current;
+      appStateRef.current = nextAppState;
+
+      // If call is already ended, don't do anything
+      if (callState === 'ended' || callState === 'remote-ended') return;
+
+      // App went to background (possible phone call)
+      if (previousState === 'active' && nextAppState === 'inactive') {
+        // On iOS, inactive -> background often means phone call
+        console.log('[VideoCall] App became inactive - possible phone interruption');
+      }
+
+      if (previousState === 'active' && nextAppState === 'background') {
+        // App went to background - pause the call
+        if (callState === 'connected' && !isPaused) {
+          console.log('[VideoCall] App backgrounded - pausing call');
+          pauseCall();
+        }
+      }
+
+      // App came back to foreground
+      if (
+        (previousState === 'background' || previousState === 'inactive') &&
+        nextAppState === 'active'
+      ) {
+        console.log('[VideoCall] App foregrounded');
+        // Don't auto-resume - let user choose via the UI
+      }
+    },
+    [callState, isPaused, pauseCall]
+  );
+
   // Initialize
   useEffect(() => {
     let isMounted = true;
 
     const init = async () => {
+      // Initialize audio manager for video call (speaker mode)
+      await AudioManager.initialize('video-call');
+
       // Initialize peer connection
       initPeerConnection();
 
@@ -227,7 +380,7 @@ export function VideoCall({
 
         signalingRef.current = client;
 
-        // Start local media (permissions already requested at app launch)
+        // Start local media
         await startLocalMedia();
         if (!isMounted) return;
 
@@ -243,13 +396,22 @@ export function VideoCall({
 
     init();
 
+    // Subscribe to app state changes
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
     return () => {
       isMounted = false;
+      subscription.remove();
       console.log('[VideoCall] Cleanup');
 
-      // Use refs for cleanup to avoid stale closures
-      signalingRef.current?.leaveRoom(roomId, userId);
-      signalingRef.current?.disconnect();
+      // Clean up audio manager
+      AudioManager.cleanup();
+
+      // Send leave message before disconnect
+      if (signalingRef.current && !isEndingCallRef.current) {
+        signalingRef.current.leaveRoom(roomId, userId);
+        signalingRef.current.disconnect();
+      }
 
       // Stop all tracks
       if (localStreamRef.current) {
@@ -262,38 +424,33 @@ export function VideoCall({
 
   // Toggle mute
   const toggleMute = useCallback(() => {
-    if (localStream) {
+    if (localStream && !isPaused) {
       const audioTrack = localStream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsMuted(!audioTrack.enabled);
       }
     }
-  }, [localStream]);
+  }, [localStream, isPaused]);
 
   // Toggle camera
   const toggleCamera = useCallback(() => {
-    if (localStream) {
+    if (localStream && !isPaused) {
       const videoTrack = localStream.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setIsCameraOff(!videoTrack.enabled);
       }
     }
-  }, [localStream]);
+  }, [localStream, isPaused]);
 
-  // End call
-  const handleEndCall = useCallback(() => {
-    signalingRef.current?.leaveRoom(roomId, userId);
-    pcRef.current?.close();
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((t) => t.stop());
+  // Toggle speaker
+  const toggleSpeaker = useCallback(async () => {
+    if (!isPaused) {
+      const enabled = await AudioManager.toggleSpeaker();
+      setIsSpeakerEnabled(enabled);
     }
-    localStreamRef.current = null;
-    setLocalStream(null);
-    setRemoteStream(null);
-    updateCallState('ended');
-  }, [roomId, userId, updateCallState]);
+  }, [isPaused]);
 
   return (
     <View style={[styles.container, style]}>
@@ -305,24 +462,38 @@ export function VideoCall({
       </View>
 
       {/* PiP - local video */}
-      <View style={styles.localVideo}>
-        <LocalVideo
-          stream={localStream}
-          isMuted={isMuted}
-          isCameraOff={isCameraOff}
-        />
-      </View>
+      {!isPaused ? (
+        <View style={styles.localVideo}>
+          <LocalVideo
+            stream={localStream}
+            isMuted={isMuted}
+            isCameraOff={isCameraOff}
+          />
+        </View>
+      ) : null}
 
-      {/* Controls */}
-      <View style={styles.controls}>
-        <Controls
-          isMuted={isMuted}
-          isCameraOff={isCameraOff}
-          onToggleMute={toggleMute}
-          onToggleCamera={toggleCamera}
-          onEndCall={handleEndCall}
-        />
-      </View>
+      {/* Pause overlay with resume/end buttons */}
+      <PauseOverlay
+        isPaused={isPaused}
+        isResuming={isResuming}
+        onResume={resumeCall}
+        onEnd={handleEndCall}
+      />
+
+      {/* Controls - hide when paused */}
+      {!isPaused && !isResuming ? (
+        <View style={styles.controls}>
+          <Controls
+            isMuted={isMuted}
+            isCameraOff={isCameraOff}
+            isSpeakerEnabled={isSpeakerEnabled}
+            onToggleMute={toggleMute}
+            onToggleCamera={toggleCamera}
+            onToggleSpeaker={toggleSpeaker}
+            onEndCall={handleEndCall}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }

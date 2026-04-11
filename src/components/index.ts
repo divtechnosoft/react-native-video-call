@@ -5,4 +5,5 @@
 export * from './LocalVideo';
 export * from './RemoteVideo';
 export * from './Controls';
+export * from './PauseOverlay';
 export * from './VideoCall';

@@ -1,5 +1,5 @@
 /**
- * Controls Component - Call control buttons (mute, camera, end call)
+ * Controls Component - Call control buttons (mute, camera, speaker, end call)
  */
 
 import React from 'react';
@@ -9,16 +9,20 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 export interface ControlsProps {
   isMuted: boolean;
   isCameraOff: boolean;
+  isSpeakerEnabled: boolean;
   onToggleMute: () => void;
   onToggleCamera: () => void;
+  onToggleSpeaker: () => void;
   onEndCall: () => void;
 }
 
 export function Controls({
   isMuted,
   isCameraOff,
+  isSpeakerEnabled,
   onToggleMute,
   onToggleCamera,
+  onToggleSpeaker,
   onEndCall,
 }: ControlsProps) {
   return (
@@ -50,6 +54,22 @@ export function Controls({
       >
         <MaterialCommunityIcons
           name={isCameraOff ? 'video-off-outline' : 'video-outline'}
+          size={24}
+          color="#ffffff"
+        />
+      </Pressable>
+
+      {/* Speaker toggle button */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          isSpeakerEnabled && styles.buttonActive,
+          pressed && styles.buttonPressed,
+        ]}
+        onPress={onToggleSpeaker}
+      >
+        <MaterialCommunityIcons
+          name={isSpeakerEnabled ? 'volume-high' : 'volume-medium'}
           size={24}
           color="#ffffff"
         />

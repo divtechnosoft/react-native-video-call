@@ -25,6 +25,8 @@ export type CallState =
   | 'connecting'
   | 'connected'
   | 'reconnecting'
+  | 'paused'
+  | 'resuming'
   | 'failed'
   | 'ended'
   | 'remote-ended';
@@ -37,6 +39,8 @@ export type SignalingMessage =
   | { type: 'offer'; fromUserId: string; sdp: RTCSessionDescriptionInit }
   | { type: 'answer'; fromUserId: string; sdp: RTCSessionDescriptionInit }
   | { type: 'ice-candidate'; fromUserId: string; candidate: RTCIceCandidateInit }
+  | { type: 'user-paused'; userId: string }
+  | { type: 'user-resumed'; userId: string }
   | { type: 'error'; message: string };
 
 // User info

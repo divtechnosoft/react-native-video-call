@@ -63,6 +63,18 @@ export class SignalingClient {
           this.messageHandler?.({ type: 'user-left', userId: data.userId });
         });
 
+        // User paused
+        this.socket.on('user-paused', (data: { userId: string }) => {
+          console.log('[SignalingClient] User paused:', data.userId);
+          this.messageHandler?.({ type: 'user-paused', userId: data.userId });
+        });
+
+        // User resumed
+        this.socket.on('user-resumed', (data: { userId: string }) => {
+          console.log('[SignalingClient] User resumed:', data.userId);
+          this.messageHandler?.({ type: 'user-resumed', userId: data.userId });
+        });
+
         // Offer received
         this.socket.on('offer', (data: { fromUserId: string; sdp: RTCSessionDescriptionInit }) => {
           console.log('[SignalingClient] Offer received from:', data.fromUserId);
@@ -174,6 +186,24 @@ export class SignalingClient {
       targetUserId,
       fromUserId,
       candidate,
+    });
+  }
+
+  // Send pause notification
+  sendPause(targetUserId: string, fromUserId: string) {
+    console.log('[SignalingClient] Sending pause to:', targetUserId);
+    this.socket?.emit('pause', {
+      targetUserId,
+      fromUserId,
+    });
+  }
+
+  // Send resume notification
+  sendResume(targetUserId: string, fromUserId: string) {
+    console.log('[SignalingClient] Sending resume to:', targetUserId);
+    this.socket?.emit('resume', {
+      targetUserId,
+      fromUserId,
     });
   }
 
