@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, StyleSheet, StatusBar, AppState, AppStateStatus, Platform } from 'react-native';
+import { View, StyleSheet, StatusBar } from 'react-native';
 import { MediaStream } from 'react-native-webrtc';
 import { LocalVideo } from './LocalVideo';
 import { RemoteVideo } from './RemoteVideo';
@@ -12,13 +12,11 @@ import { PauseOverlay } from './PauseOverlay';
 import { SignalingClient } from '../services/signalingClient';
 import { PeerConnection } from '../services/peerConnection';
 import { AudioManager } from '../services/audioManager';
-import { CallState, SignalingMessage, ICEServer, CallUser } from '../types';
+import { usePhoneCallDetection } from '../hooks/usePhoneCallDetection';
+import { CallState, SignalingMessage, ICEServer, CallUser, PauseReason } from '../types';
 import { DEFAULT_ICE_SERVERS } from '../utils/iceServers';
 
 const DEFAULT_SIGNALING_URL = 'http://localhost:8080';
-
-// Minimum time after connecting before we auto-pause on background
-const MIN_CONNECTED_TIME_BEFORE_PAUSE_MS = 3000;
 
 export interface VideoCallProps {
   roomId: string;
@@ -57,6 +55,7 @@ export function VideoCall({
   const [isSpeakerEnabled, setIsSpeakerEnabled] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const [isResuming, setIsResuming] = useState(false);
+  const [pauseReason, setPauseReason] = useState<PauseReason>(null);
   const [_remotePaused, setRemotePaused] = useState(false);
   const [isRemoteCameraOff, setIsRemoteCameraOff] = useState(false);
   const [isRemoteMuted, setIsRemoteMuted] = useState(false);
@@ -69,7 +68,7 @@ export function VideoCall({
   const isEndingCallRef = useRef(false);
   const callStateRef = useRef<CallState>('idle');
   const isPausedRef = useRef(false);
-  const connectedAtRef = useRef<number>(0);
+  const isInitializedRef = useRef(false);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -86,11 +85,6 @@ export function VideoCall({
       setCallState(newState);
       callStateRef.current = newState;
       onCallStateChange?.(newState);
-
-      // Track when we first connected
-      if (newState === 'connected' && connectedAtRef.current === 0) {
-        connectedAtRef.current = Date.now();
-      }
     },
     [onCallStateChange]
   );
@@ -279,13 +273,14 @@ export function VideoCall({
   }, [initPeerConnection]);
 
   // Pause call (mute audio and video, notify remote)
-  const pauseCall = useCallback(() => {
+  const pauseCall = useCallback((reason: PauseReason = 'manual') => {
     // Don't pause if already paused or ending
     if (isPausedRef.current || isEndingCallRef.current) return;
 
-    console.log('[VideoCall] Pausing call');
+    console.log('[VideoCall] Pausing call, reason:', reason);
     setIsPaused(true);
     isPausedRef.current = true;
+    setPauseReason(reason);
     updateCallState('paused');
 
     // Mute local audio and video
@@ -332,6 +327,7 @@ export function VideoCall({
       setIsPaused(false);
       isPausedRef.current = false;
       setIsResuming(false);
+      setPauseReason(null);
       updateCallState('connected');
     } catch (error) {
       console.error('[VideoCall] Failed to resume call:', error);
@@ -377,42 +373,23 @@ export function VideoCall({
     setIsPaused(false);
     setIsResuming(false);
     isPausedRef.current = false;
+    setPauseReason(null);
     setRemotePaused(false);
     updateCallState('ended');
   }, [roomId, userId, updateCallState]);
 
-  // Handle app state changes (for phone call detection)
-  // Use refs to avoid stale closures
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      const previousState = AppState.currentState;
-      console.log('[VideoCall] App state:', previousState, '->', nextAppState);
-
-      // If call is already ended, don't do anything
-      if (callStateRef.current === 'ended' || callStateRef.current === 'remote-ended') {
-        return;
-      }
-
-      // Only handle background on iOS - Android is unreliable
-      // And only if call has been connected for at least a few seconds
-      if (
-        Platform.OS === 'ios' &&
-        previousState === 'active' &&
-        nextAppState === 'background' &&
-        callStateRef.current === 'connected' &&
-        !isPausedRef.current
-      ) {
-        const timeSinceConnected = Date.now() - connectedAtRef.current;
-        if (timeSinceConnected > MIN_CONNECTED_TIME_BEFORE_PAUSE_MS) {
-          console.log('[VideoCall] App backgrounded - pausing call');
-          pauseCall();
-        }
-      }
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription.remove();
-  }, [pauseCall]);
+  // Detect phone call interruptions via native modules
+  const { isPhoneCallActive } = usePhoneCallDetection({
+    enabled: callState === 'connected' && !isPaused,
+    onPhoneCallStarted: () => {
+      console.log('[VideoCall] Phone call started - pausing video call');
+      pauseCall('phone-call');
+    },
+    onPhoneCallEnded: () => {
+      // Don't auto-resume. User sees PauseOverlay with "Phone call ended. Tap to resume."
+      console.log('[VideoCall] Phone call ended - showing resume option');
+    },
+  });
 
   // Initialize
   useEffect(() => {
@@ -440,6 +417,9 @@ export function VideoCall({
 
         signalingRef.current = client;
 
+        // Mark as initialized after successful connection
+        isInitializedRef.current = true;
+
         // Start local media
         await startLocalMedia();
         if (!isMounted) {
@@ -463,6 +443,12 @@ export function VideoCall({
     return () => {
       console.log('[VideoCall] Component unmounting - cleanup');
       isMounted = false;
+
+      // Only cleanup if we were fully initialized and not already ending
+      if (!isInitializedRef.current) {
+        console.log('[VideoCall] Not initialized, skipping cleanup');
+        return;
+      }
 
       // Only send leave if we're not already ending the call
       if (!isEndingCallRef.current) {
@@ -564,6 +550,8 @@ export function VideoCall({
       <PauseOverlay
         isPaused={isPaused}
         isResuming={isResuming}
+        pauseReason={pauseReason}
+        isPhoneCallActive={isPhoneCallActive}
         onResume={resumeCall}
         onEnd={handleEndCall}
       />

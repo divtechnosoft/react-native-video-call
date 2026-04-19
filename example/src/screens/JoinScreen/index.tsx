@@ -2,7 +2,7 @@
  * JoinScreen - Screen to enter room and start a call
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Pressable,
@@ -21,10 +21,19 @@ interface JoinScreenProps {
   onOpenSettings: () => void;
 }
 
+// Static room ID so you don't have to type it every time
+const DEFAULT_ROOM_ID = 'room_123';
+
+// Generate a random user name (e.g. "User-a7k3")
+function generateRandomName(): string {
+  const suffix = Math.random().toString(36).substring(2, 6);
+  return `User-${suffix}`;
+}
+
 export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
   const { settings } = useSettings();
-  const [roomId, setRoomId] = useState('');
-  const [userId, setUserId] = useState('');
+  const [roomId, setRoomId] = useState(DEFAULT_ROOM_ID);
+  const [userId, setUserId] = useState(generateRandomName());
 
   const handleJoin = useCallback(() => {
     const trimmedRoomId = roomId.trim();

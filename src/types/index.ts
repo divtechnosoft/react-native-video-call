@@ -54,6 +54,16 @@ export interface CallUser {
   joinedAt?: number;
 }
 
+// Phone call detection types
+export type PhoneCallEventType = 'cellular' | 'audio-interruption';
+
+export interface PhoneCallEvent {
+  type: PhoneCallEventType;
+  callId?: string;
+}
+
+export type PauseReason = 'phone-call' | 'manual' | null;
+
 // Permission state
 export interface PermissionState {
   hasCamera: boolean;

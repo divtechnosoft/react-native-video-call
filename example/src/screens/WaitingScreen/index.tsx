@@ -28,33 +28,28 @@ export const WaitingScreen = memo(function WaitingScreen({
   const [error, setError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   const signalingRef = useRef<SignalingClient | null>(null);
-
-  console.log('[WaitingScreen] Render - Platform:', Platform.OS, 'URL:', settings.signalingUrl);
+  const isTransitioningRef = useRef(false);
 
   const handleUserJoined = useCallback((joinedUserId: string) => {
     console.log('[WaitingScreen] User joined:', joinedUserId);
     if (joinedUserId !== userId) {
+      isTransitioningRef.current = true;
       onParticipantJoined();
     }
   }, [userId, onParticipantJoined]);
 
   useEffect(() => {
-    console.log('[WaitingScreen] useEffect - Connecting to:', settings.signalingUrl);
-
     const connect = async () => {
       try {
-        console.log('[WaitingScreen] Creating SignalingClient...');
         const client = new SignalingClient(settings.signalingUrl);
 
         client.onMessage((message) => {
-          console.log('[WaitingScreen] Received message:', message.type);
           if (message.type === 'user-joined') {
             handleUserJoined(message.userId);
           } else if (message.type === 'room-users' && message.users.length > 0) {
-            // There are already users in the room
             const otherUsers = message.users.filter((id: string) => id !== userId);
-            console.log('[WaitingScreen] Room users:', message.users, 'Other users:', otherUsers);
             if (otherUsers.length > 0) {
+              isTransitioningRef.current = true;
               onParticipantJoined();
             }
           } else if (message.type === 'error') {
@@ -63,12 +58,10 @@ export const WaitingScreen = memo(function WaitingScreen({
           }
         });
 
-        console.log('[WaitingScreen] Calling client.connect()...');
         await client.connect();
         signalingRef.current = client;
         client.joinRoom(roomId, userId);
         setIsConnecting(false);
-        console.log('[WaitingScreen] Connected to signaling server');
       } catch (err) {
         console.error('[WaitingScreen] Connection error:', err);
         const errorMessage = err instanceof Error ? err.message : 'Failed to connect to server';
@@ -80,15 +73,24 @@ export const WaitingScreen = memo(function WaitingScreen({
     connect();
 
     return () => {
-      console.log('[WaitingScreen] Cleanup');
       if (signalingRef.current) {
-        signalingRef.current.leaveRoom(roomId, userId);
-        signalingRef.current.disconnect();
+        if (isTransitioningRef.current) {
+          // Transitioning to CallScreen — DON'T call leaveRoom.
+          // Just disconnect. The server has a 15s grace period on disconnect,
+          // and the VideoCall component will reconnect with the same userId
+          // which cancels the pending disconnect broadcast.
+          signalingRef.current.disconnect();
+        } else {
+          // User cancelled — properly leave the room
+          signalingRef.current.leaveRoom(roomId, userId);
+          signalingRef.current.disconnect();
+        }
       }
     };
   }, [settings.signalingUrl, roomId, userId, handleUserJoined, onParticipantJoined]);
 
   const handleCancel = useCallback(() => {
+    isTransitioningRef.current = false;
     if (signalingRef.current) {
       signalingRef.current.leaveRoom(roomId, userId);
       signalingRef.current.disconnect();

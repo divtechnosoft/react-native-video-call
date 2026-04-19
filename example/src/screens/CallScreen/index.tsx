@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, Alert, Platform } from 'react-native';
+import { View, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { VideoCall, CallState } from 'react-native-video-call';
 import { CallStatusOverlay, ErrorBanner, ThemeText } from '../../components';
@@ -38,14 +38,9 @@ export function CallScreen({ roomId, userId, onEndCall }: CallScreenProps) {
 
       // Auto-redirect on ended states
       if (state === 'ended' || state === 'remote-ended') {
-        const isRemote = state === 'remote-ended';
         setTimeout(() => {
-          Alert.alert(
-            'Call Ended',
-            isRemote ? 'The other participant left the call' : 'The call has ended',
-            [{ text: 'OK', onPress: onEndCall }]
-          );
-        }, 500);
+          onEndCall();
+        }, 2000);
       }
     },
     [onEndCall]

@@ -27,12 +27,12 @@ export class SignalingClient {
         console.log('[SignalingClient] Connecting to:', this.url);
 
         this.socket = io(this.url, {
-          transports: ['websocket', 'polling'], // Add polling as fallback for iOS
+          transports: ['websocket', 'polling'],
           reconnection: true,
-          reconnectionAttempts: 10,
+          reconnectionAttempts: Infinity,
           reconnectionDelay: 1000,
-          timeout: 20000, // Increased timeout
-          forceNew: true,
+          reconnectionDelayMax: 5000,
+          timeout: 30000,
         });
 
         this.socket.on('connect', () => {

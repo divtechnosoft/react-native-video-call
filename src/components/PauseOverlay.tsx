@@ -1,20 +1,55 @@
 /**
- * PauseOverlay - Shown when call is paused (phone interruption)
+ * PauseOverlay - Shown when call is paused (phone interruption or manual)
  */
 
 import React from 'react';
 import { View, StyleSheet, Pressable, ActivityIndicator, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { PauseReason } from '../types';
 
 export interface PauseOverlayProps {
   isPaused: boolean;
   isResuming: boolean;
+  pauseReason?: PauseReason;
+  isPhoneCallActive?: boolean;
   onResume: () => void;
   onEnd: () => void;
 }
 
-export function PauseOverlay({ isPaused, isResuming, onResume, onEnd }: PauseOverlayProps) {
+export function PauseOverlay({
+  isPaused,
+  isResuming,
+  pauseReason,
+  isPhoneCallActive,
+  onResume,
+  onEnd,
+}: PauseOverlayProps) {
   if (!isPaused && !isResuming) return null;
+
+  const isPhoneCall = pauseReason === 'phone-call';
+
+  // Determine subtitle based on state
+  const getSubtitle = () => {
+    if (isResuming) return '';
+    if (isPhoneCall) {
+      return isPhoneCallActive
+        ? 'Phone call in progress'
+        : 'Phone call ended. Tap to resume.';
+    }
+    return 'Call Paused';
+  };
+
+  // Determine icon based on state
+  const getIcon = () => {
+    if (isResuming) return null;
+    if (isPhoneCall) {
+      return isPhoneCallActive ? 'phone-paused' : 'phone-incoming';
+    }
+    return 'phone-paused';
+  };
+
+  const subtitle = getSubtitle();
+  const iconName = getIcon();
 
   return (
     <View style={styles.container}>
@@ -31,13 +66,17 @@ export function PauseOverlay({ isPaused, isResuming, onResume, onEnd }: PauseOve
           </>
         ) : (
           <>
-            <MaterialCommunityIcons name="phone-paused" size={48} color="#ffffff" />
+            {iconName ? (
+              <MaterialCommunityIcons name={iconName} size={48} color="#ffffff" />
+            ) : null}
             <View style={styles.textContainer}>
               <View style={styles.titleRow}>
                 <MaterialCommunityIcons name="phone-missed" size={20} color="#FF9500" />
                 <Text style={styles.titleText}>Call Paused</Text>
               </View>
-              <Text style={styles.subtitle}>Phone call in progress</Text>
+              {subtitle ? (
+                <Text style={styles.subtitle}>{subtitle}</Text>
+              ) : null}
             </View>
             <View style={styles.buttons}>
               <Pressable
