@@ -4,6 +4,7 @@
 
 import React, { memo } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { RTCView, MediaStream } from 'react-native-webrtc';
 
 export interface LocalVideoProps {
@@ -13,6 +14,16 @@ export interface LocalVideoProps {
 }
 
 export const LocalVideo = memo(function LocalVideo({ stream, isMuted, isCameraOff }: LocalVideoProps) {
+  // Show placeholder when camera is off
+  if (isCameraOff) {
+    return (
+      <View style={styles.placeholder}>
+        <MaterialCommunityIcons name="video-off" size={32} color="#ffffff" />
+        <Text style={styles.placeholderText}>Camera Off</Text>
+      </View>
+    );
+  }
+
   // Show placeholder when no stream
   if (!stream) {
     return (
@@ -41,19 +52,12 @@ export const LocalVideo = memo(function LocalVideo({ stream, isMuted, isCameraOf
         zOrder={1}
       />
 
-      {/* Camera off overlay */}
-      {isCameraOff && (
-        <View style={styles.overlay}>
-          <Text style={styles.overlayText}>Camera Off</Text>
-        </View>
-      )}
-
       {/* Muted indicator */}
-      {isMuted && (
+      {isMuted ? (
         <View style={styles.mutedIndicator}>
-          <Text style={styles.mutedIcon}>🔇</Text>
+          <MaterialCommunityIcons name="microphone-off" size={14} color="#ffffff" />
         </View>
-      )}
+      ) : null}
     </View>
   );
 });
@@ -73,18 +77,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 12,
+    gap: 8,
   },
   placeholderText: {
-    color: '#fff',
-    fontSize: 14,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  overlayText: {
     color: '#fff',
     fontSize: 14,
   },
@@ -95,8 +90,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 12,
     padding: 4,
-  },
-  mutedIcon: {
-    fontSize: 12,
   },
 });

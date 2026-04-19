@@ -69,6 +69,8 @@ export function VideoCall({
   const callStateRef = useRef<CallState>('idle');
   const isPausedRef = useRef(false);
   const isInitializedRef = useRef(false);
+  const isMutedRef = useRef(false);
+  const isCameraOffRef = useRef(false);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -78,6 +80,14 @@ export function VideoCall({
   useEffect(() => {
     isPausedRef.current = isPaused;
   }, [isPaused]);
+
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
+
+  useEffect(() => {
+    isCameraOffRef.current = isCameraOff;
+  }, [isCameraOff]);
 
   // Update call state
   const updateCallState = useCallback(
@@ -109,11 +119,13 @@ export function VideoCall({
       }
     });
 
-    // Handle incoming tracks
+    // Handle incoming tracks — re-apply speaker when remote audio arrives
     pc.onTrack((track, stream) => {
       console.log('[VideoCall] Remote track received:', track.kind);
       setRemoteStream(stream);
       updateCallState('connected');
+      // Re-apply audio route — libwebrtc may reset routing when remote track activates
+      AudioManager.reapplyRoute();
     });
 
     // Handle connection state changes
@@ -121,6 +133,8 @@ export function VideoCall({
       console.log('[VideoCall] Connection state:', state);
       if (state === 'connected') {
         updateCallState('connected');
+        // Re-apply audio route on connect
+        AudioManager.reapplyRoute();
       } else if (state === 'disconnected') {
         // Don't immediately change state - WebRTC can auto-recover
         console.log('[VideoCall] WebRTC disconnected, waiting for recovery...');
@@ -306,18 +320,19 @@ export function VideoCall({
     updateCallState('resuming');
 
     try {
-      // Unmute local audio and video
+      // Restore audio/video to their pre-pause states
       if (localStreamRef.current) {
         localStreamRef.current.getAudioTracks().forEach((track) => {
-          track.enabled = true;
+          track.enabled = !isMutedRef.current;
         });
         localStreamRef.current.getVideoTracks().forEach((track) => {
-          track.enabled = true;
+          track.enabled = !isCameraOffRef.current;
         });
       }
 
-      // Restore speaker
-      await AudioManager.enableSpeaker();
+      // Restore speaker to pre-pause state
+      await AudioManager.reapplyRoute();
+      setIsSpeakerEnabled(AudioManager.getIsSpeakerOn());
 
       // Notify remote user
       if (signalingRef.current && remoteUserIdRef.current) {
@@ -398,9 +413,6 @@ export function VideoCall({
     const init = async () => {
       console.log('[VideoCall] Initializing...');
 
-      // Initialize audio manager for video call (speaker mode)
-      await AudioManager.initialize('video-call');
-
       // Initialize peer connection
       initPeerConnection();
 
@@ -420,12 +432,16 @@ export function VideoCall({
         // Mark as initialized after successful connection
         isInitializedRef.current = true;
 
-        // Start local media
+        // Start local media (WebRTC initializes audio here)
         await startLocalMedia();
         if (!isMounted) {
           console.log('[VideoCall] Component unmounted during media start');
           return;
         }
+
+        // Start InCallManager AFTER getUserMedia — 'video' mode forces loudspeaker
+        await AudioManager.initialize('video-call');
+        setIsSpeakerEnabled(AudioManager.getIsSpeakerOn());
 
         // Join room
         console.log('[VideoCall] Joining room:', roomId);
@@ -473,52 +489,75 @@ export function VideoCall({
 
   // Toggle mute
   const toggleMute = useCallback(() => {
-    if (localStream && !isPausedRef.current) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        const newMutedState = !audioTrack.enabled;
-        audioTrack.enabled = !newMutedState;
-        setIsMuted(newMutedState);
+    if (!localStreamRef.current) {
+      console.log('[VideoCall] toggleMute: no local stream');
+      return;
+    }
+    if (isPausedRef.current) {
+      console.log('[VideoCall] toggleMute: call is paused');
+      return;
+    }
+    const audioTrack = localStreamRef.current.getAudioTracks()[0];
+    if (!audioTrack) {
+      console.log('[VideoCall] toggleMute: no audio track');
+      return;
+    }
+    const willBeMuted = !isMutedRef.current;
+    audioTrack.enabled = !willBeMuted;
+    isMutedRef.current = willBeMuted;
+    setIsMuted(willBeMuted);
+    console.log('[VideoCall] Mic', willBeMuted ? 'OFF' : 'ON', '- track.enabled:', audioTrack.enabled);
 
-        // Notify remote user
-        if (signalingRef.current && remoteUserIdRef.current) {
-          if (newMutedState) {
-            signalingRef.current.sendMuted?.(remoteUserIdRef.current, userId);
-          } else {
-            signalingRef.current.sendUnmuted?.(remoteUserIdRef.current, userId);
-          }
-        }
+    // Notify remote user
+    if (signalingRef.current && remoteUserIdRef.current) {
+      if (willBeMuted) {
+        signalingRef.current.sendMuted?.(remoteUserIdRef.current, userId);
+      } else {
+        signalingRef.current.sendUnmuted?.(remoteUserIdRef.current, userId);
       }
     }
-  }, [localStream, userId]);
+  }, [userId]);
 
   // Toggle camera
   const toggleCamera = useCallback(() => {
-    if (localStream && !isPausedRef.current) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        const newCameraOffState = !videoTrack.enabled;
-        videoTrack.enabled = !newCameraOffState;
-        setIsCameraOff(newCameraOffState);
+    if (!localStreamRef.current) {
+      console.log('[VideoCall] toggleCamera: no local stream');
+      return;
+    }
+    if (isPausedRef.current) {
+      console.log('[VideoCall] toggleCamera: call is paused');
+      return;
+    }
+    const videoTrack = localStreamRef.current.getVideoTracks()[0];
+    if (!videoTrack) {
+      console.log('[VideoCall] toggleCamera: no video track');
+      return;
+    }
+    const willBeOff = !isCameraOffRef.current;
+    videoTrack.enabled = !willBeOff;
+    isCameraOffRef.current = willBeOff;
+    setIsCameraOff(willBeOff);
+    console.log('[VideoCall] Camera', willBeOff ? 'OFF' : 'ON', '- track.enabled:', videoTrack.enabled);
 
-        // Notify remote user
-        if (signalingRef.current && remoteUserIdRef.current) {
-          if (newCameraOffState) {
-            signalingRef.current.sendCameraOff?.(remoteUserIdRef.current, userId);
-          } else {
-            signalingRef.current.sendCameraOn?.(remoteUserIdRef.current, userId);
-          }
-        }
+    // Notify remote user
+    if (signalingRef.current && remoteUserIdRef.current) {
+      if (willBeOff) {
+        signalingRef.current.sendCameraOff?.(remoteUserIdRef.current, userId);
+      } else {
+        signalingRef.current.sendCameraOn?.(remoteUserIdRef.current, userId);
       }
     }
-  }, [localStream, userId]);
+  }, [userId]);
 
-  // Toggle speaker
+  // Toggle speaker (switches between loudspeaker and earpiece)
   const toggleSpeaker = useCallback(async () => {
-    if (!isPausedRef.current) {
-      const enabled = await AudioManager.toggleSpeaker();
-      setIsSpeakerEnabled(enabled);
+    if (isPausedRef.current) {
+      console.log('[VideoCall] toggleSpeaker: call is paused');
+      return;
     }
+    const enabled = await AudioManager.toggleSpeaker();
+    setIsSpeakerEnabled(enabled);
+    console.log('[VideoCall] Speaker', enabled ? 'ON (loudspeaker)' : 'OFF (earpiece)');
   }, []);
 
   return (

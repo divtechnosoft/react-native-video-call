@@ -31,8 +31,8 @@ export function Controls({
       <Pressable
         style={({ pressed }) => [
           styles.button,
-          isMuted && styles.buttonActive,
-          pressed && styles.buttonPressed,
+          isMuted ? styles.buttonActive : null,
+          pressed ? styles.buttonPressed : null,
         ]}
         onPress={onToggleMute}
       >
@@ -47,8 +47,8 @@ export function Controls({
       <Pressable
         style={({ pressed }) => [
           styles.button,
-          isCameraOff && styles.buttonActive,
-          pressed && styles.buttonPressed,
+          isCameraOff ? styles.buttonActive : null,
+          pressed ? styles.buttonPressed : null,
         ]}
         onPress={onToggleCamera}
       >
@@ -59,17 +59,17 @@ export function Controls({
         />
       </Pressable>
 
-      {/* Speaker toggle button */}
+      {/* Speaker toggle button - switches between loudspeaker and earpiece */}
       <Pressable
         style={({ pressed }) => [
           styles.button,
-          isSpeakerEnabled && styles.buttonActive,
-          pressed && styles.buttonPressed,
+          isSpeakerEnabled ? styles.buttonActive : null,
+          pressed ? styles.buttonPressed : null,
         ]}
         onPress={onToggleSpeaker}
       >
         <MaterialCommunityIcons
-          name={isSpeakerEnabled ? 'volume-high' : 'volume-medium'}
+          name={isSpeakerEnabled ? 'volume-high' : 'volume-off'}
           size={24}
           color="#ffffff"
         />
@@ -77,7 +77,7 @@ export function Controls({
 
       {/* End call button */}
       <Pressable
-        style={({ pressed }) => [styles.button, styles.endCallButton, pressed && styles.buttonPressed]}
+        style={({ pressed }) => [styles.button, styles.endCallButton, pressed ? styles.buttonPressed : null]}
         onPress={onEndCall}
       >
         <MaterialCommunityIcons name="phone-hangup" size={24} color="#ffffff" />

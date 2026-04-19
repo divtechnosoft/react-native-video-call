@@ -1,44 +1,38 @@
 /**
- * AudioManager - Handles audio routing for video calls
+ * AudioManager - Audio routing for video calls
  *
- * Ensures audio plays through the correct speaker:
- * - Video calls: Loudspeaker (speakerphone)
- * - Audio calls: Earpiece
- * - Handles Bluetooth/wired headset connections
+ * Directly controls Android/iOS audio routing via native module.
+ *
+ * Key insight: WebRTC's libwebrtc has its own internal audio manager that
+ * overrides Android AudioManager settings. It calls setSpeakerphoneOn(false)
+ * when audio starts, when audio focus changes, and when proximity sensor fires.
+ *
+ * Strategy: Set our routing AFTER WebRTC finishes its setup, and RE-APPLY
+ * whenever a remote track arrives or connection state changes.
  */
 
-import { Platform, NativeModules, NativeEventEmitter, AppState, AppStateStatus } from 'react-native';
-
-const { WebRTCModule } = NativeModules;
-
-export type AudioDevice = 'speaker' | 'earpiece' | 'bluetooth' | 'wired-headset';
 export type AudioMode = 'video-call' | 'voice-call';
 
-interface AudioManagerState {
-  currentDevice: AudioDevice;
-  availableDevices: AudioDevice[];
-  isSpeakerEnabled: boolean;
-  appState: AppStateStatus;
+// Lazy-load native module
+let _nativeModule: any = null;
+function getNativeModule(): any {
+  if (_nativeModule !== null) return _nativeModule;
+  try {
+    const { requireNativeModule } = require('expo-modules-core');
+    _nativeModule = requireNativeModule('ReactNativeVideoCall');
+  } catch {
+    _nativeModule = null;
+  }
+  return _nativeModule;
 }
 
-type DeviceChangeListener = (device: AudioDevice) => void;
-
 class AudioManagerService {
-  private state: AudioManagerState = {
-    currentDevice: 'earpiece',
-    availableDevices: ['earpiece', 'speaker'],
-    isSpeakerEnabled: false,
-    appState: 'active',
-  };
-
-  private eventEmitter: NativeEventEmitter | null = null;
-  private deviceChangeListeners: DeviceChangeListener[] = [];
-  private appStateSubscription: any = null;
+  private isSpeakerOn = false;
   private isInitialized = false;
 
   /**
-   * Initialize audio for a video call
-   * Sets up speakerphone mode and listeners
+   * Initialize AFTER getUserMedia.
+   * Requests audio focus, sets MODE_IN_COMMUNICATION, and routes to speaker.
    */
   async initialize(mode: AudioMode = 'video-call'): Promise<void> {
     if (this.isInitialized) {
@@ -46,289 +40,116 @@ class AudioManagerService {
       return;
     }
 
-    console.log('[AudioManager] Initializing for mode:', mode);
+    console.log('[AudioManager] Initializing, mode:', mode);
 
     try {
-      // Set up app state listener (for handling interruptions)
-      this.appStateSubscription = AppState.addEventListener('change', this.handleAppStateChange);
+      const nativeModule = getNativeModule();
+      if (!nativeModule?.setCommunicationMode) {
+        console.warn('[AudioManager] Native audio module not available');
+        return;
+      }
 
-      // Set up audio device change listener
-      this.setupDeviceChangeListener();
+      this.isSpeakerOn = mode === 'video-call';
 
-      // Configure audio session based on mode
-      if (mode === 'video-call') {
-        await this.enableSpeaker();
+      // Step 1: Request audio focus + set communication mode
+      await nativeModule.setCommunicationMode();
+
+      // Step 2: Wait for WebRTC's internal audio setup to complete.
+      // libwebrtc calls setSpeakerphoneOn(false) during this phase,
+      // so we must apply our routing AFTER it finishes.
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Step 3: Route audio (this may get overridden by WebRTC again,
+      // but reapplyRoute() will fix it when remote track arrives)
+      if (nativeModule.setSpeakerOn) {
+        await nativeModule.setSpeakerOn(this.isSpeakerOn);
       } else {
-        await this.disableSpeaker();
-      }
-
-      // Set audio mode on Android
-      if (Platform.OS === 'android') {
-        await this.setAndroidAudioMode(mode);
-      }
-
-      // Set audio session on iOS
-      if (Platform.OS === 'ios') {
-        await this.setIOSAudioSession(mode);
+        console.warn('[AudioManager] setSpeakerOn not available on native module');
       }
 
       this.isInitialized = true;
-      console.log('[AudioManager] Initialized successfully');
+      console.log('[AudioManager] Initialized, speaker:', this.isSpeakerOn);
+      await this.logState('initialize');
     } catch (error) {
-      console.error('[AudioManager] Failed to initialize:', error);
-      // Try to set speaker anyway for video calls
-      if (mode === 'video-call') {
-        await this.enableSpeaker();
-      }
+      console.error('[AudioManager] Initialize failed:', error);
     }
   }
 
   /**
-   * Clean up audio configuration
+   * Re-apply current audio route. CRITICAL: Call this when remote stream
+   * arrives — libwebrtc resets routing when remote audio track activates.
+   *
+   * This is the most important call. WebRTC overrides speaker settings
+   * internally, so we must re-apply AFTER it's done.
    */
-  async cleanup(): Promise<void> {
-    console.log('[AudioManager] Cleaning up');
-
+  async reapplyRoute(): Promise<void> {
+    if (!this.isInitialized) return;
+    console.log('[AudioManager] Re-applying route, speaker:', this.isSpeakerOn);
     try {
-      // Remove listeners
-      if (this.appStateSubscription) {
-        this.appStateSubscription.remove();
-        this.appStateSubscription = null;
+      const nativeModule = getNativeModule();
+      if (nativeModule?.setSpeakerOn) {
+        // Small delay to let WebRTC's audio layer settle after track event
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await nativeModule.setSpeakerOn(this.isSpeakerOn);
       }
-
-      if (this.eventEmitter) {
-        this.eventEmitter = null;
-      }
-
-      this.deviceChangeListeners = [];
-
-      // Reset audio to normal mode
-      if (Platform.OS === 'android') {
-        await this.resetAndroidAudio();
-      }
-
-      if (Platform.OS === 'ios') {
-        await this.resetIOSAudio();
-      }
-
-      this.isInitialized = false;
-      console.log('[AudioManager] Cleanup complete');
+      await this.logState('reapply');
     } catch (error) {
-      console.error('[AudioManager] Cleanup error:', error);
+      console.error('[AudioManager] Re-apply failed:', error);
     }
   }
 
   /**
-   * Enable speakerphone (loudspeaker)
-   */
-  async enableSpeaker(): Promise<void> {
-    console.log('[AudioManager] Enabling speaker');
-
-    try {
-      if (Platform.OS === 'android') {
-        // Use WebRTC module to set speaker on
-        if (WebRTCModule?.setSpeakerphoneOn) {
-          await WebRTCModule.setSpeakerphoneOn(true);
-        }
-      }
-
-      if (Platform.OS === 'ios') {
-        // Use WebRTC module to set audio route
-        if (WebRTCModule?.setAudioOutput) {
-          await WebRTCModule.setAudioOutput('speaker');
-        }
-      }
-
-      this.state.isSpeakerEnabled = true;
-      this.state.currentDevice = 'speaker';
-      this.notifyDeviceChange('speaker');
-    } catch (error) {
-      console.error('[AudioManager] Failed to enable speaker:', error);
-    }
-  }
-
-  /**
-   * Disable speakerphone (use earpiece)
-   */
-  async disableSpeaker(): Promise<void> {
-    console.log('[AudioManager] Disabling speaker');
-
-    try {
-      if (Platform.OS === 'android') {
-        if (WebRTCModule?.setSpeakerphoneOn) {
-          await WebRTCModule.setSpeakerphoneOn(false);
-        }
-      }
-
-      if (Platform.OS === 'ios') {
-        if (WebRTCModule?.setAudioOutput) {
-          await WebRTCModule.setAudioOutput('earpiece');
-        }
-      }
-
-      this.state.isSpeakerEnabled = false;
-      this.state.currentDevice = 'earpiece';
-      this.notifyDeviceChange('earpiece');
-    } catch (error) {
-      console.error('[AudioManager] Failed to disable speaker:', error);
-    }
-  }
-
-  /**
-   * Toggle speaker on/off
+   * Toggle speaker <-> earpiece
    */
   async toggleSpeaker(): Promise<boolean> {
-    if (this.state.isSpeakerEnabled) {
-      await this.disableSpeaker();
-    } else {
-      await this.enableSpeaker();
-    }
-    return this.state.isSpeakerEnabled;
-  }
+    if (!this.isInitialized) return this.isSpeakerOn;
 
-  /**
-   * Get current speaker state
-   */
-  isSpeakerEnabled(): boolean {
-    return this.state.isSpeakerEnabled;
-  }
-
-  /**
-   * Get current audio device
-   */
-  getCurrentDevice(): AudioDevice {
-    return this.state.currentDevice;
-  }
-
-  /**
-   * Add listener for audio device changes
-   */
-  onDeviceChange(listener: DeviceChangeListener): () => void {
-    this.deviceChangeListeners.push(listener);
-    return () => {
-      const index = this.deviceChangeListeners.indexOf(listener);
-      if (index > -1) {
-        this.deviceChangeListeners.splice(index, 1);
-      }
-    };
-  }
-
-  /**
-   * Handle app state changes (background/foreground)
-   */
-  private handleAppStateChange = async (nextAppState: AppStateStatus): Promise<void> => {
-    console.log('[AudioManager] App state changed:', nextAppState);
-
-    const previousState = this.state.appState;
-    this.state.appState = nextAppState;
-
-    // Coming back to foreground - re-enable speaker if it was on
-    if (previousState === 'background' && nextAppState === 'active') {
-      if (this.state.isSpeakerEnabled) {
-        // Small delay to let audio system settle
-        setTimeout(() => {
-          this.enableSpeaker();
-        }, 100);
-      }
-    }
-  };
-
-  /**
-   * Set up listener for audio device changes (Bluetooth, headset, etc.)
-   */
-  private setupDeviceChangeListener(): void {
+    this.isSpeakerOn = !this.isSpeakerOn;
     try {
-      if (WebRTCModule) {
-        this.eventEmitter = new NativeEventEmitter(WebRTCModule);
-
-        // Listen for audio device changes
-        this.eventEmitter.addListener('AudioDeviceChanged', (event: { device: AudioDevice }) => {
-          console.log('[AudioManager] Audio device changed:', event.device);
-          this.state.currentDevice = event.device;
-          this.notifyDeviceChange(event.device);
-        });
+      const nativeModule = getNativeModule();
+      if (nativeModule?.setSpeakerOn) {
+        await nativeModule.setSpeakerOn(this.isSpeakerOn);
       }
+      console.log('[AudioManager] Toggled speaker:', this.isSpeakerOn);
+      await this.logState('toggle');
     } catch (error) {
-      console.log('[AudioManager] Could not set up device change listener');
+      console.error('[AudioManager] Toggle failed:', error);
     }
+    return this.isSpeakerOn;
   }
 
   /**
-   * Configure Android audio mode
+   * Stop audio management, reset to normal
    */
-  private async setAndroidAudioMode(mode: AudioMode): Promise<void> {
+  async cleanup(): Promise<void> {
+    console.log('[AudioManager] Cleanup');
     try {
-      if (WebRTCModule?.setAudioMode) {
-        await WebRTCModule.setAudioMode(mode === 'video-call' ? 'inCommunication' : 'inCall');
+      const nativeModule = getNativeModule();
+      if (nativeModule?.resetAudio) {
+        await nativeModule.resetAudio();
       }
+      this.isInitialized = false;
+      this.isSpeakerOn = false;
     } catch (error) {
-      console.error('[AudioManager] Failed to set Android audio mode:', error);
+      console.error('[AudioManager] Cleanup failed:', error);
+      this.isInitialized = false;
+      this.isSpeakerOn = false;
     }
   }
 
-  /**
-   * Configure iOS audio session
-   */
-  private async setIOSAudioSession(mode: AudioMode): Promise<void> {
+  getIsSpeakerOn(): boolean {
+    return this.isSpeakerOn;
+  }
+
+  private async logState(tag: string): Promise<void> {
     try {
-      if (WebRTCModule?.setAudioSession) {
-        await WebRTCModule.setAudioSession({
-          category: 'playAndRecord',
-          mode: mode === 'video-call' ? 'videoChat' : 'voiceChat',
-          options: ['allowBluetooth', 'allowBluetoothA2DP', 'defaultToSpeaker'],
-        });
+      const nativeModule = getNativeModule();
+      if (nativeModule?.getAudioState) {
+        const state = nativeModule.getAudioState();
+        console.log(`[AudioManager] ${tag}:`, JSON.stringify(state));
       }
-    } catch (error) {
-      console.error('[AudioManager] Failed to set iOS audio session:', error);
-    }
-  }
-
-  /**
-   * Reset Android audio to normal
-   */
-  private async resetAndroidAudio(): Promise<void> {
-    try {
-      if (WebRTCModule?.setSpeakerphoneOn) {
-        await WebRTCModule.setSpeakerphoneOn(false);
-      }
-      if (WebRTCModule?.setAudioMode) {
-        await WebRTCModule.setAudioMode('normal');
-      }
-    } catch (error) {
-      console.error('[AudioManager] Failed to reset Android audio:', error);
-    }
-  }
-
-  /**
-   * Reset iOS audio session
-   */
-  private async resetIOSAudio(): Promise<void> {
-    try {
-      if (WebRTCModule?.setAudioSession) {
-        await WebRTCModule.setAudioSession({
-          category: 'soloAmbient',
-          mode: 'default',
-          options: [],
-        });
-      }
-    } catch (error) {
-      console.error('[AudioManager] Failed to reset iOS audio session:', error);
-    }
-  }
-
-  /**
-   * Notify all listeners of device change
-   */
-  private notifyDeviceChange(device: AudioDevice): void {
-    this.deviceChangeListeners.forEach((listener) => {
-      try {
-        listener(device);
-      } catch (error) {
-        console.error('[AudioManager] Listener error:', error);
-      }
-    });
+    } catch { /* ignore */ }
   }
 }
 
-// Export singleton instance
 export const AudioManager = new AudioManagerService();
