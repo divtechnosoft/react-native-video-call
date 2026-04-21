@@ -15,10 +15,13 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 32,
   },
-  settingsButton: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+  },
+  iconButton: {
     padding: 8,
   },
   buttonPressed: {

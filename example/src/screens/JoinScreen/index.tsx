@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSettings } from '../../context';
 import { ThemeText, ThemeTextInput } from '../../components';
@@ -19,6 +20,7 @@ import { styles } from './style';
 interface JoinScreenProps {
   onJoinCall: (roomId: string, userId: string) => void;
   onOpenSettings: () => void;
+  onGoBack?: () => void;
 }
 
 // Static room ID so you don't have to type it every time
@@ -30,8 +32,9 @@ function generateRandomName(): string {
   return `User-${suffix}`;
 }
 
-export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
+export function JoinScreen({ onJoinCall, onOpenSettings, onGoBack }: JoinScreenProps) {
   const { settings } = useSettings();
+  const insets = useSafeAreaInsets();
   const [roomId, setRoomId] = useState(DEFAULT_ROOM_ID);
   const [userId, setUserId] = useState(generateRandomName());
 
@@ -84,19 +87,35 @@ export function JoinScreen({ onJoinCall, onOpenSettings }: JoinScreenProps) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
-        {/* Settings button */}
-        <Pressable
-          style={({ pressed }) => [styles.settingsButton, pressed && styles.buttonPressed]}
-          onPress={onOpenSettings}
-        >
-          {({ pressed }) => (
-            <MaterialCommunityIcons
-              name="cog-outline"
-              size={28}
-              color={pressed ? COLORS.primary : COLORS.textSecondary}
-            />
-          )}
-        </Pressable>
+        {/* Top bar */}
+        <View style={[styles.topBar, { paddingTop: insets.top }]}>
+          {onGoBack ? (
+            <Pressable
+              style={({ pressed }) => [styles.iconButton, pressed && styles.buttonPressed]}
+              onPress={onGoBack}
+            >
+              {({ pressed }) => (
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={28}
+                  color={pressed ? COLORS.primary : COLORS.textSecondary}
+                />
+              )}
+            </Pressable>
+          ) : <View style={styles.iconButton} />}
+          <Pressable
+            style={({ pressed }) => [styles.iconButton, pressed && styles.buttonPressed]}
+            onPress={onOpenSettings}
+          >
+            {({ pressed }) => (
+              <MaterialCommunityIcons
+                name="cog-outline"
+                size={28}
+                color={pressed ? COLORS.primary : COLORS.textSecondary}
+              />
+            )}
+          </Pressable>
+        </View>
 
         {/* Logo */}
         <View style={styles.logoContainer}>

@@ -4,6 +4,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { View, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { VideoCall, CallState } from 'react-native-video-call';
 import { CallStatusOverlay, ErrorBanner, ThemeText } from '../../components';
@@ -14,11 +15,13 @@ import { styles } from './style';
 interface CallScreenProps {
   roomId: string;
   userId: string;
+  enableVideo?: boolean;
   onEndCall: () => void;
 }
 
-export function CallScreen({ roomId, userId, onEndCall }: CallScreenProps) {
+export function CallScreen({ roomId, userId, enableVideo = true, onEndCall }: CallScreenProps) {
   const { settings } = useSettings();
+  const insets = useSafeAreaInsets();
   const [callState, setCallState] = useState<CallState>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -62,13 +65,14 @@ export function CallScreen({ roomId, userId, onEndCall }: CallScreenProps) {
         roomId={roomId}
         userId={userId}
         signalingUrl={settings.signalingUrl}
+        enableVideo={enableVideo}
         onCallStateChange={handleCallStateChange}
         onError={handleError}
         style={styles.videoCall}
       />
 
       {/* Top bar with room info */}
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { top: insets.top + 8 }]}>
         <View style={styles.roomInfo}>
           <MaterialCommunityIcons name="video-outline" size={16} color={COLORS.text} />
           <ThemeText variant="small" style={styles.roomLabel}>{roomId}</ThemeText>

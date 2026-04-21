@@ -11,6 +11,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSettings } from '../../context';
 import { ThemeText, ThemeTextInput } from '../../components';
@@ -23,6 +24,7 @@ interface SettingsScreenProps {
 
 export function SettingsScreen({ onClose }: SettingsScreenProps) {
   const { settings, updateSettings } = useSettings();
+  const insets = useSafeAreaInsets();
   const [signalingUrl, setSignalingUrl] = useState(settings.signalingUrl);
 
   const handleSave = useCallback(async () => {
@@ -66,7 +68,7 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <Pressable style={styles.backButton} onPress={onClose}>
           {({ pressed }) => (
             <MaterialCommunityIcons
@@ -165,7 +167,7 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
       </ScrollView>
 
       {/* Save Button */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
         <Pressable
           style={({ pressed }) => [styles.saveButton, pressed && styles.saveButtonPressed]}
           onPress={handleSave}

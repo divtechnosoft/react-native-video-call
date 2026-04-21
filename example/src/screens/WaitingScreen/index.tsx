@@ -4,6 +4,7 @@
 
 import React, { memo, useEffect, useState, useCallback, useRef } from 'react';
 import { View, Pressable, ActivityIndicator, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SignalingClient } from 'react-native-video-call';
 import { ThemeText } from '../../components';
@@ -25,6 +26,7 @@ export const WaitingScreen = memo(function WaitingScreen({
   onCancel,
 }: WaitingScreenProps) {
   const { settings } = useSettings();
+  const insets = useSafeAreaInsets();
   const [error, setError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   const signalingRef = useRef<SignalingClient | null>(null);
@@ -100,7 +102,7 @@ export const WaitingScreen = memo(function WaitingScreen({
 
   if (error) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.content}>
           <MaterialCommunityIcons name="alert-circle-outline" size={64} color={COLORS.textMuted} />
           <ThemeText variant="large" style={styles.title}>
@@ -126,7 +128,7 @@ export const WaitingScreen = memo(function WaitingScreen({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.content}>
         {/* Avatar with ringing animation */}
         <View style={styles.avatar}>

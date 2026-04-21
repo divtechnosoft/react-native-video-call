@@ -1,5 +1,5 @@
 /**
- * SettingsScreen Styles
+ * ProfileScreen Styles
  */
 
 import { StyleSheet } from 'react-native';
@@ -12,92 +12,83 @@ export const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 16,
   },
   backButton: {
-    padding: 4,
+    padding: 8,
   },
   title: {
+    flex: 1,
     textAlign: 'center',
   },
   spacer: {
-    width: 28,
+    width: 44,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 32,
+    paddingTop: 16,
   },
-  section: {
-    marginBottom: 32,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
+  avatarContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 32,
+    borderWidth: 2,
+    borderColor: COLORS.border,
   },
-  sectionTitle: {
-    marginLeft: 8,
+  inputGroup: {
+    marginBottom: 24,
   },
   label: {
     marginBottom: 8,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  hintBox: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-  },
-  hint: {
-    marginLeft: 8,
-    flex: 1,
-    lineHeight: 20,
-  },
-  actionButton: {
+  userIdRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderRadius: 12,
-    paddingVertical: 14,
     paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  actionButtonPressed: {
-    backgroundColor: COLORS.surfaceLight,
-  },
-  actionButtonText: {
-    marginLeft: 12,
+  userIdText: {
     flex: 1,
+    color: COLORS.textMuted,
+    fontSize: 14,
   },
-  actionButtonTextPressed: {
-    color: COLORS.primary,
+  copyButton: {
+    marginLeft: 8,
+    padding: 4,
   },
-  aboutText: {
-    lineHeight: 22,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    padding: 16,
+  copyButtonPressed: {
+    opacity: 0.7,
   },
   footer: {
-    padding: 20,
+    paddingHorizontal: 32,
   },
   saveButton: {
     backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingVertical: 16,
+    paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   saveButtonPressed: {
     backgroundColor: COLORS.primaryDark,
+  },
+  saveButtonDisabled: {
+    backgroundColor: COLORS.textDark,
+    opacity: 0.5,
   },
   saveButtonText: {
     marginLeft: 8,

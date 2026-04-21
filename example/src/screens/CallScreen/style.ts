@@ -15,7 +15,6 @@ export const styles = StyleSheet.create({
   },
   topBar: {
     position: 'absolute',
-    top: 50,
     left: 16,
     right: 16,
     flexDirection: 'row',
